@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script tự động tăng version cho Flutter app (GiaoNhanHang)
+# Script tự động tăng version cho Flutter app và .NET backend (GiaoNhanHang)
 # Sử dụng: ./scripts/increment_version.sh [major|minor|patch|build|auto]
 # Mặc định: auto (tự động phát hiện từ git commits)
 #
@@ -17,6 +17,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 FLUTTER_PUBSPEC="$PROJECT_ROOT/app/pubspec.yaml"
+DOTNET_CSPROJ="$PROJECT_ROOT/backend/GiaoNhanHangApi/GiaoNhanHangApi.csproj"
 
 INCREMENT_TYPE="${1:-auto}"
 
@@ -181,9 +182,73 @@ increment_flutter_version() {
     echo "$NEW_VERSION"
 }
 
+# Hàm tăng version cho .NET backend (csproj)
+increment_dotnet_version() {
+    if [ ! -f "$DOTNET_CSPROJ" ]; then
+        echo "⚠️  Không tìm thấy file .csproj, bỏ qua .NET version"
+        return
+    fi
+
+    if grep -q "<Version>" "$DOTNET_CSPROJ"; then
+        CURRENT_VERSION=$(grep "<Version>" "$DOTNET_CSPROJ" | sed 's/.*<Version>\(.*\)<\/Version>.*/\1/' | tr -d ' ')
+    else
+        CURRENT_VERSION=$(grep "^version:" "$FLUTTER_PUBSPEC" | sed 's/version: //' | cut -d'+' -f1 | tr -d ' ')
+        if [ -z "$CURRENT_VERSION" ]; then
+            CURRENT_VERSION="1.0.0"
+        fi
+    fi
+
+    MAJOR=$(echo "$CURRENT_VERSION" | cut -d'.' -f1)
+    MINOR=$(echo "$CURRENT_VERSION" | cut -d'.' -f2)
+    PATCH=$(echo "$CURRENT_VERSION" | cut -d'.' -f3)
+
+    if [ -z "$MAJOR" ] || ! [[ "$MAJOR" =~ ^[0-9]+$ ]]; then MAJOR=1; fi
+    if [ -z "$MINOR" ] || ! [[ "$MINOR" =~ ^[0-9]+$ ]]; then MINOR=0; fi
+    if [ -z "$PATCH" ] || ! [[ "$PATCH" =~ ^[0-9]+$ ]]; then PATCH=0; fi
+
+    case "$INCREMENT_TYPE" in
+        major)
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            ;;
+        minor)
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            ;;
+        patch)
+            PATCH=$((PATCH + 1))
+            ;;
+        build)
+            PATCH=$((PATCH + 1))
+            ;;
+    esac
+
+    NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+
+    if grep -q "<Version>" "$DOTNET_CSPROJ"; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s/<Version>.*<\/Version>/<Version>$NEW_VERSION<\/Version>/" "$DOTNET_CSPROJ"
+        else
+            sed -i "s/<Version>.*<\/Version>/<Version>$NEW_VERSION<\/Version>/" "$DOTNET_CSPROJ"
+        fi
+    else
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "/<PropertyGroup>/a\\
+    <Version>$NEW_VERSION<\/Version>
+" "$DOTNET_CSPROJ"
+        else
+            sed -i "/<PropertyGroup>/a \    <Version>$NEW_VERSION<\/Version>" "$DOTNET_CSPROJ"
+        fi
+    fi
+
+    echo "✅ .NET version: $CURRENT_VERSION → $NEW_VERSION"
+}
+
 NEW_FLUTTER_VERSION=$(increment_flutter_version)
+increment_dotnet_version
 
 echo ""
 echo "🎉 Đã tăng version thành công!"
-echo "📱 Version: $NEW_FLUTTER_VERSION"
+echo "📱 Flutter: $NEW_FLUTTER_VERSION"
 echo ""

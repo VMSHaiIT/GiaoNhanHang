@@ -1,10 +1,13 @@
 #!/bin/bash
 
-# Script build release Flutter app GiaoNhanHang
+# Script build release Flutter app và .NET backend - GiaoNhanHang
 # Tự động tăng version trước khi build (trừ khi dùng --no-increment)
 #
 # Sử dụng: ./scripts/build_release.sh [platform] [increment_type] [--no-increment]
-# Platform: apk | appbundle | ios | web | all (mặc định: all = apk + web)
+# Platform: apk | appbundle | ios | web | windows | macos | linux | backend | frontend | all
+#   all (mặc định) = backend + web + apk
+#   frontend = web + apk
+#   backend = chỉ .NET API
 # Increment type: major | minor | patch | build | auto (mặc định: auto)
 # --no-increment: Chỉ build, không tăng version
 
@@ -13,6 +16,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 FLUTTER_APP_DIR="$PROJECT_ROOT/app"
+BACKEND_DIR="$PROJECT_ROOT/backend/GiaoNhanHangApi"
 
 SKIP_VERSION_INCREMENT=false
 PLATFORM=""
@@ -130,6 +134,31 @@ build_ios() {
     echo "✅ iOS build xong"
 }
 
+# Hàm build .NET backend
+build_backend() {
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Build .NET Backend"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    cd "$BACKEND_DIR"
+
+    if [ -d "./publish" ]; then
+        echo "🗑️  Xóa thư mục publish cũ..."
+        rm -rf ./publish
+    fi
+
+    echo "🔨 Building .NET API..."
+    dotnet build -c Release
+    echo "📦 Publishing .NET API..."
+    dotnet publish -c Release -o ./publish
+
+    if [ -f "web.config" ]; then
+        cp web.config ./publish/web.config
+        echo "✅ web.config đã copy vào publish"
+    fi
+    echo "✅ Backend đã publish tại: backend/GiaoNhanHangApi/publish"
+}
+
 echo "🚀 Build release GiaoNhanHang"
 echo "📦 Platform: $PLATFORM"
 if [ "$SKIP_VERSION_INCREMENT" = true ]; then
@@ -147,8 +176,50 @@ if [ "$SKIP_VERSION_INCREMENT" = false ]; then
     echo ""
 fi
 
+# frontend: chỉ web + apk
+if [[ "$PLATFORM" == "frontend" ]]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Bước 2: Clean Flutter & Build frontend"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    clean_flutter_app
+    build_web
+    build_apk
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🎉 Build release hoàn tất!"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 0
+fi
+
+# backend: chỉ .NET
+if [[ "$PLATFORM" == "backend" ]]; then
+    build_backend
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🎉 Build release hoàn tất!"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 0
+fi
+
+# all: backend + web + apk
+if [[ "$PLATFORM" == "all" ]]; then
+    build_backend
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Bước 2: Clean Flutter & Build frontend"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    clean_flutter_app
+    build_web
+    build_apk
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🎉 Build release hoàn tất!"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 0
+fi
+
+# Platform đơn lẻ: apk | appbundle | ios | web | windows | macos | linux
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Bước 2: Clean & Build"
+echo "Bước 2: Clean & Build ($PLATFORM)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 clean_flutter_app
 
@@ -165,13 +236,24 @@ case "$PLATFORM" in
     web)
         build_web
         ;;
-    all)
-        build_web
-        build_apk
+    windows)
+        cd "$FLUTTER_APP_DIR"
+        flutter build windows --release
+        echo "✅ Windows: build/windows"
+        ;;
+    macos)
+        cd "$FLUTTER_APP_DIR"
+        flutter build macos --release
+        echo "✅ macOS: build/macos"
+        ;;
+    linux)
+        cd "$FLUTTER_APP_DIR"
+        flutter build linux --release
+        echo "✅ Linux: build/linux"
         ;;
     *)
         echo "❌ Platform không hợp lệ: $PLATFORM"
-        echo "   Dùng: apk | appbundle | ios | web | all"
+        echo "   Dùng: apk | appbundle | ios | web | windows | macos | linux | backend | frontend | all"
         exit 1
         ;;
 esac

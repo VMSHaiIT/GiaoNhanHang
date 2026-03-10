@@ -1,18 +1,19 @@
 #!/bin/bash
 
 # Script build & publish tự động - GiaoNhanHang
-# Thực hiện: tăng version → build release → copy artifacts vào thư mục release/ (sẵn sàng đăng store)
+# Thực hiện: tăng version → build release → copy artifacts vào thư mục release/ (sẵn sàng đăng store / deploy backend)
 #
 # Sử dụng:
-#   ./scripts/build_publish.sh                    # all: tăng version (auto) + build apk + web + copy
+#   ./scripts/build_publish.sh                    # all: backend + web + apk + copy
+#   ./scripts/build_publish.sh frontend            # web + apk + copy
+#   ./scripts/build_publish.sh backend             # chỉ backend + copy
 #   ./scripts/build_publish.sh apk                 # chỉ apk
-#   ./scripts/build_publish.sh appbundle           # chỉ app bundle (AAB) - cho Play Store
-#   ./scripts/build_publish.sh apk patch           # tăng patch + build apk
+#   ./scripts/build_publish.sh appbundle           # chỉ app bundle (AAB)
 #   ./scripts/build_publish.sh all --no-increment  # build không tăng version
-#   ./scripts/build_publish.sh all --no-copy       # build nhưng không copy ra release/
+#   ./scripts/build_publish.sh all --no-copy      # build nhưng không copy ra release/
 #
 # Tham số:
-#   platform: apk | appbundle | web | all (mặc định: all)
+#   platform: apk | appbundle | web | backend | frontend | all (mặc định: all)
 #   increment_type: major | minor | patch | build | auto (mặc định: auto)
 #   --no-increment: Bỏ qua tăng version
 #   --no-copy: Không copy file build ra thư mục release/
@@ -22,6 +23,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 FLUTTER_APP_DIR="$PROJECT_ROOT/app"
+BACKEND_DIR="$PROJECT_ROOT/backend/GiaoNhanHangApi"
 RELEASE_DIR="$PROJECT_ROOT/release"
 
 SKIP_VERSION_INCREMENT=false
@@ -99,11 +101,20 @@ copy_to_release() {
         has_any=true
     fi
 
+    # Backend .NET (publish)
+    local backend_src="$BACKEND_DIR/publish"
+    if [ -d "$backend_src" ]; then
+        cp -R "$backend_src" "$dest/backend"
+        echo "  ✅ backend/"
+        has_any=true
+    fi
+
     if [ "$has_any" = true ]; then
         echo ""
         echo "📁 Thư mục release: $dest"
         echo "   - APK/AAB: gửi lên store hoặc phân phối"
-        echo "   - web/: deploy lên hosting tĩnh"
+        echo "   - web/: deploy lên hosting tĩnh (tbx.lientinh.com)"
+        echo "   - backend/: deploy API (apitbx.lientinh.com)"
     else
         echo "  ⚠️  Không có artifact nào để copy (kiểm tra platform đã build)."
         rmdir "$dest" 2>/dev/null || true
