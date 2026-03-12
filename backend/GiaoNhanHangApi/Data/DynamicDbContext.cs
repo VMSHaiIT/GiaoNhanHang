@@ -41,6 +41,7 @@ namespace GiaoNhanHangApi.Data
         public DbSet<Branch> Branches => Set<Branch>();
         public DbSet<Vehicle> Vehicles => Set<Vehicle>();
         public DbSet<Staff> Staff => Set<Staff>();
+        public DbSet<StaffLocation> StaffLocations => Set<StaffLocation>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -203,6 +204,30 @@ namespace GiaoNhanHangApi.Data
                 entity.HasKey(e => e.StaffID);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Phone).HasMaxLength(50);
+            });
+
+            // StaffLocations
+            modelBuilder.Entity<StaffLocation>(entity =>
+            {
+                entity.HasKey(e => e.LocationID);
+                entity.Property(e => e.Latitude).HasColumnType("decimal(10,7)");
+                entity.Property(e => e.Longitude).HasColumnType("decimal(10,7)");
+                entity.Property(e => e.SpeedKmh).HasColumnType("decimal(6,2)");
+                entity.Property(e => e.Heading).HasColumnType("decimal(6,2)");
+                entity.Property(e => e.Timestamp).HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasOne(e => e.Staff)
+                    .WithMany()
+                    .HasForeignKey(e => e.StaffID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Trip)
+                    .WithMany()
+                    .HasForeignKey(e => e.TripID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Index tăng tốc query theo staff + trip
+                entity.HasIndex(e => new { e.StaffID, e.TripID, e.Timestamp });
             });
         }
     }

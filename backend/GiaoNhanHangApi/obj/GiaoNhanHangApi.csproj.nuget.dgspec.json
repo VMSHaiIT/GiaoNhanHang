@@ -1,25 +1,44 @@
 {
   "format": 1,
   "restore": {
-    "/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/GiaoNhanHangApi.csproj": {}
+    "D:\\GitHub\\GiaoNhanHang\\backend\\GiaoNhanHangApi\\GiaoNhanHangApi.csproj": {}
   },
   "projects": {
-    "/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/GiaoNhanHangApi.csproj": {
+    "D:\\GitHub\\GiaoNhanHang\\backend\\GiaoNhanHangApi\\GiaoNhanHangApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/GiaoNhanHangApi.csproj",
+        "projectUniqueName": "D:\\GitHub\\GiaoNhanHang\\backend\\GiaoNhanHangApi\\GiaoNhanHangApi.csproj",
         "projectName": "GiaoNhanHangApi",
-        "projectPath": "/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/GiaoNhanHangApi.csproj",
-        "packagesPath": "/Users/caohungtran/.nuget/packages/",
-        "outputPath": "/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/obj/",
+        "projectPath": "D:\\GitHub\\GiaoNhanHang\\backend\\GiaoNhanHangApi\\GiaoNhanHangApi.csproj",
+        "packagesPath": "C:\\Users\\PC\\.nuget\\packages\\",
+        "outputPath": "D:\\GitHub\\GiaoNhanHang\\backend\\GiaoNhanHangApi\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "D:\\DevExpress 21.1\\Components\\Offline Packages",
+          "D:\\DevExpress 22.2\\Components\\Offline Packages",
+          "D:\\DevExpress 24.2\\Components\\Offline Packages",
+          "D:\\DevExpress 25.1\\Components\\Offline Packages",
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "/Users/caohungtran/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\PC\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\DevExpress 21.1.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\DevExpress 22.2.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\DevExpress 24.2.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\DevExpress 25.1.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "C:\\Users\\PC\\Downloads\\Stimulsoft_Reports_2023.1.1_Downloadly.ir\\Stimulsoft Reports 2023.1.1\\Crack for Blazor\\sr.blazor-2023.1.1\\Libs\\Reports.Blazor\\net5.0": {},
+          "D:\\DevExpress 21.1\\Components\\System\\Components\\Packages": {},
+          "D:\\DevExpress 22.2\\Components\\System\\Components\\Packages": {},
+          "D:\\DevExpress 24.2\\Components\\System\\Components\\Packages": {},
+          "D:\\DevExpress 25.1\\Components\\System\\Components\\Packages": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -51,6 +70,10 @@
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[8.0.0, )"
+            },
+            "Microsoft.AspNetCore.SignalR": {
+              "target": "Package",
+              "version": "[1.1.0, )"
             },
             "Microsoft.Data.SqlClient": {
               "target": "Package",
@@ -90,20 +113,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[8.0.20, 8.0.20]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Host.osx-arm64",
-              "version": "[8.0.20, 8.0.20]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[8.0.20, 8.0.20]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.AspNetCore.App": {
               "privateAssets": "none"
@@ -112,7 +121,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.305/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.301/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

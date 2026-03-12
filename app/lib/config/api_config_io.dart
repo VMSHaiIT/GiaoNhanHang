@@ -7,11 +7,13 @@ String getBaseUrl() {
   if (kReleaseMode) {
     return publishBaseUrl;
   }
-  if (Platform.isAndroid || Platform.isIOS) {
-    return 'http://115.78.95.245:5088/api';
+  // Android Emulator: 10.0.2.2 trỏ về máy host (localhost của máy dev)
+  if (Platform.isAndroid) {
+    return 'http://10.0.2.2:5088/api';
   }
-  if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+  // iOS Simulator / macOS / Windows / Linux → dùng localhost trực tiếp
+  if (Platform.isIOS || Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
     return 'http://localhost:5088/api';
   }
-  return 'http://115.78.95.245:5088/api';
+  return publishBaseUrl;
 }

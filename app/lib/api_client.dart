@@ -437,4 +437,57 @@ class ApiClient {
     _check(r, expect201: true);
     return Vehicle.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
   }
+
+  // ──────────────────────────────────────────────
+  // Location Tracking (REST fallback)
+  // ──────────────────────────────────────────────
+
+  /// Gửi vị trí mới lên server (fallback khi không dùng SignalR)
+  Future<void> updateLocation(LocationUpdateRequest req) async {
+    final jwtToken = await _getAuthToken();
+    final r = await _client
+        .post(
+          _u('/location/update'),
+          headers: {
+            'Authorization': 'Bearer $jwtToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(req.toJson()),
+        )
+        .timeout(_timeout);
+    _check(r);
+  }
+
+  /// Dừng chia sẻ vị trí
+  Future<void> stopLocationSharing(LocationStopRequest req) async {
+    final jwtToken = await _getAuthToken();
+    final r = await _client
+        .post(
+          _u('/location/stop'),
+          headers: {
+            'Authorization': 'Bearer $jwtToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(req.toJson()),
+        )
+        .timeout(_timeout);
+    _check(r);
+  }
+
+  /// Lấy vị trí mới nhất của tất cả staff đang active
+  Future<List<StaffLocationDto>> getActiveLocations() async {
+    final jwtToken = await _getAuthToken();
+    final r = await _client.get(_u('/location/active'), headers: {
+      'Authorization': 'Bearer $jwtToken',
+      'Content-Type': 'application/json',
+    }).timeout(_timeout);
+    _check(r);
+    final list = jsonDecode(r.body) as List;
+    return list
+        .map((e) => StaffLocationDto.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Lấy token xác thực để kết nối SignalR
+  Future<String> getAuthToken() => _getAuthToken();
 }

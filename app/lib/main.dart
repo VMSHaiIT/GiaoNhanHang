@@ -14,6 +14,7 @@ import 'screens/distribute_screen.dart';
 import 'screens/incoming_warehouse_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/config_screen.dart';
+import 'screens/staff_tracking_screen.dart';
 import 'ui/navigation_drawer.dart';
 import 'ui/design_system.dart';
 
@@ -51,6 +52,7 @@ enum _HomeView {
   outgoingWarehouse,
   distribute,
   incomingWarehouse,
+  staffTracking,
   reports,
   config,
 }
@@ -123,6 +125,8 @@ class _HomeViewState extends State<HomeView> {
         return DistributeScreen(api: api);
       case _HomeView.incomingWarehouse:
         return IncomingWarehouseScreen(api: api);
+      case _HomeView.staffTracking:
+        return StaffTrackingScreen(api: api);
       case _HomeView.reports:
         return ReportsScreen(api: api);
       case _HomeView.config:

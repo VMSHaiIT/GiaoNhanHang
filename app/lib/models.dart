@@ -538,3 +538,100 @@ class CreateOrderRequest {
     };
   }
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Location Tracking Models
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// DTO khớp với StaffLocationDto trên backend SignalR
+class StaffLocationDto {
+  final String staffID;
+  final String staffName;
+  final String tripID;
+  final double latitude;
+  final double longitude;
+  final double? speedKmh;
+  final double? heading;
+  final DateTime timestamp;
+
+  StaffLocationDto({
+    required this.staffID,
+    required this.staffName,
+    required this.tripID,
+    required this.latitude,
+    required this.longitude,
+    this.speedKmh,
+    this.heading,
+    required this.timestamp,
+  });
+
+  factory StaffLocationDto.fromJson(Map<String, dynamic> json) =>
+      StaffLocationDto(
+        staffID: json['staffID'] as String? ?? '',
+        staffName: json['staffName'] as String? ?? '',
+        tripID: json['tripID'] as String? ?? '',
+        latitude: (json['latitude'] as num).toDouble(),
+        longitude: (json['longitude'] as num).toDouble(),
+        speedKmh: json['speedKmh'] != null
+            ? (json['speedKmh'] as num).toDouble()
+            : null,
+        heading: json['heading'] != null
+            ? (json['heading'] as num).toDouble()
+            : null,
+        timestamp: json['timestamp'] != null
+            ? DateTime.parse(json['timestamp'] as String)
+            : DateTime.now(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'staffID': staffID,
+        'staffName': staffName,
+        'tripID': tripID,
+        'latitude': latitude,
+        'longitude': longitude,
+        'speedKmh': speedKmh,
+        'heading': heading,
+        'timestamp': timestamp.toIso8601String(),
+      };
+}
+
+/// Request cập nhật vị trí qua REST fallback
+class LocationUpdateRequest {
+  final String staffID;
+  final String tripID;
+  final double latitude;
+  final double longitude;
+  final double? speedKmh;
+  final double? heading;
+
+  LocationUpdateRequest({
+    required this.staffID,
+    required this.tripID,
+    required this.latitude,
+    required this.longitude,
+    this.speedKmh,
+    this.heading,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'staffID': staffID,
+        'tripID': tripID,
+        'latitude': latitude,
+        'longitude': longitude,
+        'speedKmh': speedKmh,
+        'heading': heading,
+      };
+}
+
+/// Request dừng chia sẻ vị trí
+class LocationStopRequest {
+  final String staffID;
+  final String tripID;
+
+  LocationStopRequest({required this.staffID, required this.tripID});
+
+  Map<String, dynamic> toJson() => {
+        'staffID': staffID,
+        'tripID': tripID,
+      };
+}
