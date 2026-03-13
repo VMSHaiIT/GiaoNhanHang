@@ -435,6 +435,7 @@ namespace GiaoNhanHangApi.Controllers
                             [Quantity] int NOT NULL DEFAULT 0,
                             [Price] decimal(18,2) NOT NULL DEFAULT 0,
                             [Amount] decimal(18,2) NOT NULL DEFAULT 0,
+                            [ImageUrl] nvarchar(max) NULL,
                             CONSTRAINT [PK_OrderItems] PRIMARY KEY ([ItemID]),
                             CONSTRAINT [FK_OrderItems_Orders_OrderID] FOREIGN KEY ([OrderID]) REFERENCES [Orders] ([OrderID]) ON DELETE CASCADE
                         );

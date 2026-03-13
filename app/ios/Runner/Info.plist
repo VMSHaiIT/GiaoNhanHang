@@ -46,6 +46,12 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 
+	<!-- ── Camera and photo library for order image capture ──────────── -->
+	<key>NSCameraUsageDescription</key>
+	<string>Ứng dụng cần truy cập camera để chụp ảnh đơn hàng.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Ứng dụng cần truy cập thư viện ảnh để chọn ảnh cho đơn hàng.</string>
+
 	<!-- ── Location permissions (geolocator) ───────────────────────────── -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Ứng dụng cần truy cập vị trí để phát vị trí GPS của bạn trong khi thực hiện chuyến đi.</string>

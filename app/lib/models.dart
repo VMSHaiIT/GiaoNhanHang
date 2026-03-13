@@ -282,6 +282,7 @@ class OrderItem {
   final int quantity;
   final double price;
   final double amount;
+  final String? imageUrl;
 
   OrderItem({
     required this.itemID,
@@ -292,6 +293,7 @@ class OrderItem {
     required this.quantity,
     required this.price,
     required this.amount,
+    this.imageUrl,
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
@@ -303,6 +305,7 @@ class OrderItem {
         quantity: json['quantity'] as int,
         price: (json['price'] as num).toDouble(),
         amount: (json['amount'] as num).toDouble(),
+        imageUrl: json['imageUrl'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -314,6 +317,7 @@ class OrderItem {
         'quantity': quantity,
         'price': price,
         'amount': amount,
+        'imageUrl': imageUrl,
       };
 }
 

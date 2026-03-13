@@ -5419,19 +5419,19 @@
     ]
   },
   "packageFolders": {
-    "/Users/lms/.nuget/packages/": {}
+    "/Users/caohungtran/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/lms/Documents/GitHub/GiaoNhanHang/backend/GiaoNhanHangApi/GiaoNhanHangApi.csproj",
+      "projectUniqueName": "/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/GiaoNhanHangApi.csproj",
       "projectName": "GiaoNhanHangApi",
-      "projectPath": "/Users/lms/Documents/GitHub/GiaoNhanHang/backend/GiaoNhanHangApi/GiaoNhanHangApi.csproj",
-      "packagesPath": "/Users/lms/.nuget/packages/",
-      "outputPath": "/Users/lms/Documents/GitHub/GiaoNhanHang/backend/GiaoNhanHangApi/obj/",
+      "projectPath": "/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/GiaoNhanHangApi.csproj",
+      "packagesPath": "/Users/caohungtran/.nuget/packages/",
+      "outputPath": "/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/lms/.nuget/NuGet/NuGet.Config"
+        "/Users/caohungtran/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
@@ -5455,7 +5455,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "10.0.100"
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net8.0": {
@@ -5514,15 +5514,15 @@
         "downloadDependencies": [
           {
             "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[8.0.23, 8.0.23]"
+            "version": "[8.0.20, 8.0.20]"
           },
           {
             "name": "Microsoft.NETCore.App.Host.osx-arm64",
-            "version": "[8.0.23, 8.0.23]"
+            "version": "[8.0.20, 8.0.20]"
           },
           {
             "name": "Microsoft.NETCore.App.Ref",
-            "version": "[8.0.23, 8.0.23]"
+            "version": "[8.0.20, 8.0.20]"
           }
         ],
         "frameworkReferences": {
@@ -5533,7 +5533,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.102/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.305/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

@@ -26,6 +26,8 @@ namespace GiaoNhanHangApi.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal Amount { get; set; }
         
+        public string? ImageUrl { get; set; }
+        
         // Navigation property
         [ForeignKey("OrderID")]
         public virtual Order Order { get; set; } = null!;

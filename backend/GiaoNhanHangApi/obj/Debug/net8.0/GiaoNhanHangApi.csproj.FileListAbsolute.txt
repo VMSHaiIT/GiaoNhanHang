@@ -457,3 +457,12 @@ D:/GitHub/GiaoNhanHang/backend/GiaoNhanHangApi/bin/Debug/net8.0/System.Net.WebSo
 /Users/lms/Documents/GitHub/GiaoNhanHang/backend/GiaoNhanHangApi/obj/Debug/net8.0/GiaoNhanHangApi.pdb
 /Users/lms/Documents/GitHub/GiaoNhanHang/backend/GiaoNhanHangApi/obj/Debug/net8.0/GiaoNhanHangApi.genruntimeconfig.cache
 /Users/lms/Documents/GitHub/GiaoNhanHang/backend/GiaoNhanHangApi/obj/Debug/net8.0/ref/GiaoNhanHangApi.dll
+/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/bin/Debug/net8.0/publish/web.config
+/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/bin/Debug/net8.0/web.config
+/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/bin/Debug/net8.0/publish/appsettings.json
+/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/bin/Debug/net8.0/publish/GiaoNhanHangApi.deps.json
+/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/bin/Debug/net8.0/publish/GiaoNhanHangApi.runtimeconfig.json
+/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/bin/Debug/net8.0/publish/GiaoNhanHangApi.staticwebassets.endpoints.json
+/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/bin/Debug/net8.0/Newtonsoft.Json.dll
+/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/bin/Debug/net8.0/System.Net.WebSockets.WebSocketProtocol.dll
+/Users/caohungtran/Documents/Github/GiaoNhanHang/backend/GiaoNhanHangApi/obj/Debug/net8.0/GiaoNhanHangApi.sourcelink.json

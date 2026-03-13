@@ -31,6 +31,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    _emailController.text = 'giaonhanhang';
+    _userLoginController.text = 'giaonhanhang';
     _emailController.addListener(_onEmailChanged);
     _userLoginController.addListener(_onUserLoginChanged);
   }
@@ -100,7 +102,8 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e, st) {
       if (mounted) {
-        ErrorHandler.show(context, e, stackTrace: st,
+        ErrorHandler.show(context, e,
+            stackTrace: st,
             shortMessage: 'Không thể kết nối. Kiểm tra mạng hoặc API.');
       }
     } finally {
@@ -142,7 +145,8 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e, st) {
       if (mounted) {
-        ErrorHandler.show(context, e, stackTrace: st,
+        ErrorHandler.show(context, e,
+            stackTrace: st,
             shortMessage: 'Đăng nhập thất bại. Vui lòng thử lại.');
       }
     } finally {

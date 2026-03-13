@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import '../api_client.dart';
 import '../models.dart' as app_models;
 import '../ui/design_system.dart';
+import '../ui/image_picker_helper.dart';
 import '../utils/error_handler.dart';
 
 /// Breakpoints for responsive layout (logical pixels).
@@ -393,6 +395,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           quantity: quantity,
           price: price,
           amount: amount,
+          imageUrl: item.imageUrl,
         );
       }).toList();
 
@@ -1395,6 +1398,66 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     );
   }
 
+  Widget _buildCameraCell(BuildContext context, OrderItemInput item, bool isMobile) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isNarrow = width < _kBreakpointMobile;
+    final iconSize = isNarrow ? 18.0 : 22.0;
+    final thumbSize = isNarrow ? 36.0 : 44.0;
+
+    if (item.imageUrl != null) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              width: thumbSize,
+              height: thumbSize,
+              child: _buildImageWidget(item.imageUrl!, fit: BoxFit.cover),
+            ),
+          ),
+          IconButton(
+            onPressed: () => setState(() => item.imageUrl = null),
+            icon: Icon(Icons.close, size: iconSize),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+        ],
+      );
+    }
+    return IconButton(
+      onPressed: () async {
+        final imageUrl = await ImagePickerHelper.pickAndGetDataUrl(
+          context: context,
+        );
+        if (imageUrl != null && mounted) {
+          setState(() => item.imageUrl = imageUrl);
+        }
+      },
+      icon: Icon(Icons.camera_alt, size: iconSize, color: AppTheme.primaryColor),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+    );
+  }
+
+  Widget _buildImageWidget(String imageUrl, {BoxFit fit = BoxFit.cover}) {
+    try {
+      if (imageUrl.startsWith('data:image/')) {
+        final parts = imageUrl.split(',');
+        if (parts.length >= 2) {
+          final bytes = base64Decode(parts[1]);
+          return Image.memory(bytes, fit: fit);
+        }
+      } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return Image.network(imageUrl, fit: fit);
+      }
+    } catch (_) {}
+    return Container(
+      color: Colors.grey.shade200,
+      child: const Icon(Icons.broken_image, color: Colors.grey),
+    );
+  }
+
   Widget _buildOrderItemsSection(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width < _kBreakpointMobile;
@@ -1633,6 +1696,10 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                   keyboardType: TextInputType.number,
                   readOnly: true,
                 ),
+              ),
+              const SizedBox(width: AppTheme.spacingS),
+              Flexible(
+                child: _buildCameraCell(context, item, true),
               ),
             ],
           ),
@@ -1973,7 +2040,19 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           ),
         ),
         const SizedBox(width: AppTheme.spacingS),
-        const SizedBox(width: 80),
+        SizedBox(
+          width: 80,
+          child: Text(
+            'Hình',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppTheme.spacingS),
+        const SizedBox(width: 100),
       ],
     );
   }
@@ -2130,6 +2209,12 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
               keyboardType: TextInputType.number,
               readOnly: true,
             ),
+          ),
+          const SizedBox(width: AppTheme.spacingS),
+          SizedBox(
+            width: 80,
+            height: 44,
+            child: _buildCameraCell(context, item, false),
           ),
           const SizedBox(width: AppTheme.spacingS),
           SizedBox(
@@ -2366,6 +2451,7 @@ class OrderItemInput {
   final TextEditingController amountController =
       TextEditingController(text: '0');
   String unit = 'Thùng';
+  String? imageUrl;
 
   void dispose() {
     nameController.dispose();
