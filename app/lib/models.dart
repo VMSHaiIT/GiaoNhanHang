@@ -603,6 +603,7 @@ class LocationUpdateRequest {
   final double longitude;
   final double? speedKmh;
   final double? heading;
+  final String? staffName;
 
   LocationUpdateRequest({
     required this.staffID,
@@ -611,10 +612,12 @@ class LocationUpdateRequest {
     required this.longitude,
     this.speedKmh,
     this.heading,
+    this.staffName,
   });
 
   Map<String, dynamic> toJson() => {
         'staffID': staffID,
+        'staffName': staffName ?? '',
         'tripID': tripID,
         'latitude': latitude,
         'longitude': longitude,

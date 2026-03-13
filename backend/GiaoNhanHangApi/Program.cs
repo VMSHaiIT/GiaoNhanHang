@@ -37,6 +37,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured")))
         };
+
+        // SignalR dùng WebSocket không thể gửi Authorization header,
+        // nên token được truyền qua query string ?access_token=...
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/locationHub"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -124,7 +141,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Map SignalR Hub
-app.MapHub<LocationHub>("/locationHub");
+// Map SignalR Hub — dùng SignalRPolicy để hỗ trợ AllowCredentials
+app.MapHub<LocationHub>("/locationHub").RequireCors("SignalRPolicy");
 
 app.Run();

@@ -1,17 +1,15 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:signalr_netcore/signalr_client.dart';
 
 import '../api_client.dart';
 import '../models.dart' as app_models;
 import '../ui/design_system.dart';
 import '../utils/error_handler.dart';
+import '../utils/route_service.dart';
+import '../utils/tracking_service.dart';
 
 /// Màn hình phát vị trí thời gian thực dành cho Staff.
 /// Luồng: Chọn chuyến đi → Xem bản đồ + vị trí hiện tại → Bật phát vị trí
@@ -25,25 +23,22 @@ class StaffTrackingScreen extends StatefulWidget {
 
 class _StaffTrackingScreenState extends State<StaffTrackingScreen>
     with WidgetsBindingObserver {
-  // ── State ──────────────────────────────────────────────────────────────────
-  List<app_models.Trip> _trips = [];
-  app_models.Trip? _selectedTrip;
-  bool _isLoadingTrips = true;
-  bool _isSharing = false;
-  bool _isConnecting = false;
+  // ── Service ────────────────────────────────────────────────────────────────
+  final _service = TrackingService.instance;
 
-  // Vị trí hiện tại
-  Position? _currentPosition;
-  bool _isGettingLocation = false;
-  String _locationStatus = 'Chưa lấy vị trí';
+  // ── Trip list state (widget-local) ─────────────────────────────────────────
+  List<app_models.Trip> _trips = [];
+  bool _isLoadingTrips = true;
 
   // Bản đồ
   final MapController _mapController = MapController();
-  final List<LatLng> _trackPoints = []; // lộ trình đã đi
+  LatLng? _lastMapCenter; // để phát hiện thay đổi vị trí và di chuyển bản đồ
 
-  // SignalR
-  HubConnection? _hubConnection;
-  Timer? _locationTimer;
+  // Tuyến đường tham khảo
+  List<LatLng> _refRoutePoints = [];
+  LatLng? _refOriginLatLng;
+  LatLng? _refDestLatLng;
+  String? _lastRefTripId; // để tránh load lại cùng tuyến
 
   // Thông tin staff
   String _staffId = '';
@@ -58,43 +53,86 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _service.addListener(_onServiceUpdate);
     _loadStaffInfo();
     _loadTrips();
     _searchController.addListener(_filterTrips);
+    // Nếu đang tracking nền, tải lại tuyến tham khảo
+    if (_service.selectedTrip != null) {
+      _loadReferenceRoute(_service.selectedTrip!);
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _service.removeListener(_onServiceUpdate);
     _searchController.dispose();
-    _stopSharing(silent: true);
+    // ⚠️ KHÔNG gọi stopSharing ở đây — tracking tiếp tục chạy nền
+    // khi staff chuyển màn hình. Chỉ dừng khi app bị đóng hoàn toàn.
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Dừng chia sẻ khi app vào background (tuỳ chọn, có thể bỏ)
-    if (state == AppLifecycleState.paused && _isSharing) {
-      // Giữ chia sẻ khi background — không dừng
+    if (state == AppLifecycleState.detached) {
+      // App bị đóng hoàn toàn → dừng tracking và giải phóng tài nguyên
+      _service.forceStop();
+    }
+    // paused / hidden / inactive → giữ tracking tiếp tục chạy
+  }
+
+  /// Callback từ service — rebuild UI và di chuyển bản đồ nếu vị trí thay đổi.
+  void _onServiceUpdate() {
+    if (!mounted) return;
+    setState(() {});
+
+    final pos = _service.currentPosition;
+    if (pos != null) {
+      final point = LatLng(pos.latitude, pos.longitude);
+      if (_lastMapCenter == null ||
+          _lastMapCenter!.latitude != pos.latitude ||
+          _lastMapCenter!.longitude != pos.longitude) {
+        _lastMapCenter = point;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _service.selectedTrip != null) {
+            _mapController.move(
+              point,
+              _service.isSharing ? _mapController.camera.zoom : 15.0,
+            );
+          }
+        });
+      }
     }
   }
 
   // ── Helpers: Load dữ liệu ──────────────────────────────────────────────────
   Future<void> _loadStaffInfo() async {
     final prefs = await SharedPreferences.getInstance();
+    // staff_id thường không được lưu trong login → dùng user_login làm fallback
+    final id = prefs.getString('staff_id') ??
+        prefs.getString('user_login') ??
+        prefs.getString('user_email') ??
+        '';
+    final name = prefs.getString('staff_name') ??
+        prefs.getString('user_email') ??
+        'Staff';
     setState(() {
-      _staffId = prefs.getString('staff_id') ?? '';
-      _staffName = prefs.getString('staff_name') ??
-          prefs.getString('user_email') ??
-          'Staff';
+      _staffId = id;
+      _staffName = name;
     });
+    // Cập nhật service với thông tin staff mới nhất
+    _service.configure(
+      api: widget.api,
+      staffId: id,
+      staffName: name,
+    );
   }
 
   Future<void> _loadTrips() async {
     setState(() => _isLoadingTrips = true);
     try {
       final trips = await widget.api.getTrips();
-      // Lọc chuyến đang hoạt động hoặc chờ — staff chỉ thấy chuyến liên quan
       final active = trips
           .where((t) => t.status == 'Đang chạy' || t.status == 'Chờ')
           .toList();
@@ -110,6 +148,40 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
       }
     } finally {
       setState(() => _isLoadingTrips = false);
+    }
+  }
+
+  Future<void> _loadReferenceRoute(app_models.Trip trip) async {
+    final origin = trip.route?.origin;
+    final dest = trip.route?.destination;
+    if (origin == null || dest == null) return;
+    // Bỏ qua nếu đã load cho chuyến này
+    if (_lastRefTripId == trip.tripID) return;
+    _lastRefTripId = trip.tripID;
+
+    final result = await RouteService.fetchReferenceRoute(origin, dest);
+    if (!mounted) return;
+    if (_lastRefTripId != trip.tripID) return; // user đã đổi chuyến
+    setState(() {
+      _refRoutePoints = result.points;
+      _refOriginLatLng = result.origin;
+      _refDestLatLng = result.destination;
+    });
+
+    // Fit bản đồ để thấy cả hai đầu tuyến
+    if (result.hasRoute && result.origin != null && result.destination != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _mapController.fitCamera(
+          CameraFit.bounds(
+            bounds: LatLngBounds(
+              result.origin!,
+              result.destination!,
+            ),
+            padding: const EdgeInsets.all(60),
+          ),
+        );
+      });
     }
   }
 
@@ -133,257 +205,56 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
     });
   }
 
-  // ── GPS Permission & Position ──────────────────────────────────────────────
-  Future<bool> _checkAndRequestPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.deniedForever) {
-      if (mounted) {
+  // ── Tracking actions (delegate tới service) ────────────────────────────────
+  Future<void> _getCurrentLocation() async {
+    final ok = await _service.getCurrentLocation();
+    if (!ok && mounted) {
+      // Nếu bị từ chối vĩnh viễn service không biết hiện thông báo — xử lý ở đây
+      if (_service.locationStatus.contains('quyền')) {
         AppWidgets.showFlushbar(
           context,
-          'Quyền vị trí bị từ chối vĩnh viễn. Vui lòng bật trong Cài đặt.',
+          'Quyền vị trí bị từ chối. Vui lòng bật trong Cài đặt.',
           type: MessageType.error,
         );
-      }
-      return false;
-    }
-    return permission == LocationPermission.always ||
-        permission == LocationPermission.whileInUse;
-  }
-
-  Future<void> _getCurrentLocation() async {
-    setState(() {
-      _isGettingLocation = true;
-      _locationStatus = 'Đang lấy vị trí...';
-    });
-    try {
-      final hasPermission = await _checkAndRequestPermission();
-      if (!hasPermission) {
-        setState(() => _locationStatus = 'Không có quyền truy cập vị trí');
-        return;
-      }
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 15),
-        ),
-      );
-      setState(() {
-        _currentPosition = pos;
-        _locationStatus =
-            '${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}';
-      });
-      _mapController.move(
-        LatLng(pos.latitude, pos.longitude),
-        15.0,
-      );
-    } catch (e) {
-      setState(() => _locationStatus = 'Lỗi: ${e.toString()}');
-      if (mounted) {
+      } else {
         AppWidgets.showFlushbar(context, 'Không lấy được vị trí GPS.',
             type: MessageType.error);
       }
-    } finally {
-      setState(() => _isGettingLocation = false);
     }
   }
 
-  // ── SignalR ────────────────────────────────────────────────────────────────
-  Future<void> _connectSignalR() async {
-    try {
-      final token = await widget.api.getAuthToken();
-      final baseUrl = widget.api.baseUrl
-          .replaceAll('/api', ''); // https://apitbx.lientinh.com
-
-      final connection = HubConnectionBuilder()
-          .withUrl(
-            '$baseUrl/locationHub',
-            options: HttpConnectionOptions(
-              accessTokenFactory: () async => token,
-              skipNegotiation: false,
-              transport: HttpTransportType.WebSockets,
-            ),
-          )
-          .withAutomaticReconnect(retryDelays: [2000, 5000, 10000, 30000])
-          .build();
-
-      connection.onclose(({Exception? error}) {
-        if (mounted && _isSharing) {
-          setState(() => _locationStatus = 'Mất kết nối SignalR, đang thử lại...');
-        }
-      });
-
-      connection.onreconnecting(({Exception? error}) {
-        if (mounted) {
-          setState(() => _locationStatus = 'Đang kết nối lại...');
-        }
-      });
-
-      connection.onreconnected(({String? connectionId}) {
-        if (mounted) {
-          setState(() => _locationStatus = 'Đã kết nối lại');
-        }
-      });
-
-      await connection.start();
-      _hubConnection = connection;
-    } catch (e) {
-      _hubConnection = null;
-      ErrorHandler.logError(e, null, 'SignalR');
-      // Fallback: dùng REST polling
-    }
-  }
-
-  // ── Bắt đầu phát vị trí ───────────────────────────────────────────────────
   Future<void> _startSharing() async {
-    if (_selectedTrip == null) {
+    if (_service.selectedTrip == null) {
       AppWidgets.showFlushbar(context, 'Vui lòng chọn chuyến đi trước.',
           type: MessageType.warning);
       return;
     }
-
-    final hasPermission = await _checkAndRequestPermission();
-    if (!hasPermission) return;
-
-    setState(() => _isConnecting = true);
-
-    try {
-      // 1. Lấy vị trí ban đầu
-      await _getCurrentLocation();
-      if (_currentPosition == null) {
-        setState(() => _isConnecting = false);
-        return;
-      }
-
-      // 2. Kết nối SignalR
-      await _connectSignalR();
-
-      // 3. Bắt đầu timer gửi vị trí mỗi 5 giây
-      setState(() {
-        _isSharing = true;
-        _isConnecting = false;
-        _trackPoints.clear();
-        _locationStatus = 'Đang phát vị trí...';
-      });
-
-      _locationTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-        _sendCurrentLocation();
-      });
-
-      // Gửi ngay lập tức lần đầu
-      _sendCurrentLocation();
-
-      if (mounted) {
-        AppWidgets.showFlushbar(
-          context,
-          'Đã bắt đầu phát vị trí cho chuyến: ${_selectedTrip!.route?.routeName ?? _selectedTrip!.tripID}',
-          type: MessageType.success,
-        );
-      }
-    } catch (e, st) {
-      setState(() => _isConnecting = false);
-      if (mounted) {
-        ErrorHandler.show(context, e, stackTrace: st,
-            shortMessage: 'Không thể bắt đầu phát vị trí.');
-      }
+    // Đảm bảo service được cấu hình trước khi bắt đầu
+    _service.configure(
+      api: widget.api,
+      staffId: _staffId,
+      staffName: _staffName,
+    );
+    final error = await _service.startSharing(_service.selectedTrip!);
+    if (!mounted) return;
+    if (error == null) {
+      AppWidgets.showFlushbar(
+        context,
+        'Đã bắt đầu phát vị trí cho chuyến: '
+        '${_service.selectedTrip!.route?.routeName ?? _service.selectedTrip!.tripID}',
+        type: MessageType.success,
+      );
+    } else {
+      AppWidgets.showFlushbar(context, 'Không thể bắt đầu phát vị trí: $error',
+          type: MessageType.error);
     }
   }
 
-  Future<void> _sendCurrentLocation() async {
-    try {
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 8),
-        ),
-      );
-
-      if (!mounted) return;
-
-      final point = LatLng(pos.latitude, pos.longitude);
-      setState(() {
-        _currentPosition = pos;
-        _trackPoints.add(point);
-        _locationStatus =
-            '${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}  '
-            '${pos.speed > 0 ? '${(pos.speed * 3.6).toStringAsFixed(1)} km/h' : ''}';
-      });
-
-      // Di chuyển bản đồ theo
-      _mapController.move(point, _mapController.camera.zoom);
-
-      final dto = app_models.StaffLocationDto(
-        staffID: _staffId,
-        staffName: _staffName,
-        tripID: _selectedTrip!.tripID,
-        latitude: pos.latitude,
-        longitude: pos.longitude,
-        speedKmh: pos.speed >= 0 ? pos.speed * 3.6 : null,
-        heading: pos.heading >= 0 ? pos.heading : null,
-        timestamp: DateTime.now(),
-      );
-
-      // Ưu tiên SignalR
-      if (_hubConnection?.state == HubConnectionState.Connected) {
-        await _hubConnection!.invoke('SendLocation', args: [dto.toJson()]);
-      } else {
-        // Fallback REST
-        await widget.api.updateLocation(
-          app_models.LocationUpdateRequest(
-            staffID: _staffId,
-            tripID: _selectedTrip!.tripID,
-            latitude: pos.latitude,
-            longitude: pos.longitude,
-            speedKmh: dto.speedKmh,
-            heading: dto.heading,
-          ),
-        );
-      }
-    } catch (e) {
-      ErrorHandler.logError(e, null, 'SendLocation');
-    }
-  }
-
-  // ── Dừng phát vị trí ──────────────────────────────────────────────────────
-  Future<void> _stopSharing({bool silent = false}) async {
-    _locationTimer?.cancel();
-    _locationTimer = null;
-
-    try {
-      if (_hubConnection?.state == HubConnectionState.Connected &&
-          _selectedTrip != null) {
-        await _hubConnection!.invoke(
-          'StopSharing',
-          args: [_staffId, _selectedTrip!.tripID],
-        );
-      }
-
-      if (_selectedTrip != null && _staffId.isNotEmpty) {
-        await widget.api.stopLocationSharing(
-          app_models.LocationStopRequest(
-            staffID: _staffId,
-            tripID: _selectedTrip!.tripID,
-          ),
-        );
-      }
-    } catch (e) {
-      ErrorHandler.logError(e, null, 'StopSharing');
-    }
-
-    await _hubConnection?.stop();
-    _hubConnection = null;
-
+  Future<void> _stopSharing() async {
+    await _service.stopSharing();
     if (mounted) {
-      setState(() {
-        _isSharing = false;
-        _locationStatus = 'Đã dừng phát vị trí';
-      });
-      if (!silent) {
-        AppWidgets.showFlushbar(context, 'Đã dừng phát vị trí.',
-            type: MessageType.info);
-      }
+      AppWidgets.showFlushbar(context, 'Đã dừng phát vị trí.',
+          type: MessageType.info);
     }
   }
 
@@ -416,7 +287,7 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
         actions: [
-          if (_isSharing)
+          if (_service.isSharing)
             Padding(
               padding: const EdgeInsets.only(right: AppTheme.spacingS),
               child: Row(
@@ -443,7 +314,7 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
             ),
         ],
       ),
-      body: _selectedTrip == null
+      body: _service.selectedTrip == null
           ? _buildTripSelector()
           : _buildTrackingView(),
     );
@@ -565,8 +436,9 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
       child: InkWell(
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         onTap: () {
-          setState(() => _selectedTrip = trip);
+          _service.selectTrip(trip);
           _getCurrentLocation();
+          _loadReferenceRoute(trip);
         },
         child: Padding(
           padding: const EdgeInsets.all(AppTheme.spacingM),
@@ -690,7 +562,7 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
 
   // ── Map + Tracking View ────────────────────────────────────────────────────
   Widget _buildTrackingView() {
-    final trip = _selectedTrip!;
+    final trip = _service.selectedTrip!;
     final route = trip.route;
 
     return Column(
@@ -716,10 +588,10 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
                 bottom: 200,
                 child: FloatingActionButton.small(
                   heroTag: 'locate',
-                  onPressed: _currentPosition != null
+                  onPressed: _service.currentPosition != null
                       ? () => _mapController.move(
-                            LatLng(_currentPosition!.latitude,
-                                _currentPosition!.longitude),
+                            LatLng(_service.currentPosition!.latitude,
+                                _service.currentPosition!.longitude),
                             16,
                           )
                       : _getCurrentLocation,
@@ -769,11 +641,16 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
             ),
           ),
           TextButton.icon(
-            onPressed: _isSharing
+            onPressed: _service.isSharing
                 ? null
                 : () {
-                    setState(() => _selectedTrip = null);
-                    _stopSharing(silent: true);
+                    _service.deselectTrip();
+                    setState(() {
+                      _refRoutePoints = [];
+                      _refOriginLatLng = null;
+                      _refDestLatLng = null;
+                      _lastRefTripId = null;
+                    });
                   },
             icon: const Icon(Icons.arrow_back, size: 16),
             label: const Text('Đổi'),
@@ -788,23 +665,24 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
   }
 
   Widget _buildMap() {
-    final center = _currentPosition != null
-        ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
+    final pos = _service.currentPosition;
+    final center = pos != null
+        ? LatLng(pos.latitude, pos.longitude)
         : const LatLng(10.7769, 106.7009); // Mặc định TP.HCM
 
     final markers = <Marker>[];
 
     // Vị trí hiện tại
-    if (_currentPosition != null) {
+    if (pos != null) {
       markers.add(
         Marker(
-          point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+          point: LatLng(pos.latitude, pos.longitude),
           width: 50,
           height: 50,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              if (_isSharing)
+              if (_service.isSharing)
                 Container(
                   width: 44,
                   height: 44,
@@ -817,7 +695,7 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: _isSharing ? Colors.blue : AppTheme.primaryColor,
+                  color: _service.isSharing ? Colors.blue : AppTheme.primaryColor,
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 3),
                   boxShadow: [
@@ -852,15 +730,59 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
           maxZoom: 18,
         ),
 
-        // Lộ trình đã đi (polyline)
-        if (_trackPoints.length >= 2)
+        // Tuyến đường tham khảo (dưới cùng)
+        if (_refRoutePoints.length >= 2)
           PolylineLayer(
             polylines: [
               Polyline(
-                points: _trackPoints,
+                points: _refRoutePoints,
+                strokeWidth: 3,
+                color: Colors.orange.withValues(alpha: 0.65),
+                pattern: StrokePattern.dashed(segments: const [12, 6]),
+              ),
+            ],
+          ),
+
+        // Lộ trình đã đi (polyline thực tế)
+        if (_service.trackPoints.length >= 2)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: _service.trackPoints,
                 strokeWidth: 4,
                 color: Colors.blue.withValues(alpha: 0.8),
               ),
+            ],
+          ),
+
+        // Marker điểm xuất phát & điểm đến tham khảo
+        if (_refOriginLatLng != null || _refDestLatLng != null)
+          MarkerLayer(
+            markers: [
+              if (_refOriginLatLng != null)
+                Marker(
+                  point: _refOriginLatLng!,
+                  width: 36,
+                  height: 42,
+                  alignment: Alignment.topCenter,
+                  child: _RoutePin(
+                    color: Colors.green.shade600,
+                    icon: Icons.trip_origin,
+                    tooltip: _service.selectedTrip?.route?.origin ?? 'Xuất phát',
+                  ),
+                ),
+              if (_refDestLatLng != null)
+                Marker(
+                  point: _refDestLatLng!,
+                  width: 36,
+                  height: 42,
+                  alignment: Alignment.topCenter,
+                  child: _RoutePin(
+                    color: Colors.red.shade600,
+                    icon: Icons.location_on,
+                    tooltip: _service.selectedTrip?.route?.destination ?? 'Điểm đến',
+                  ),
+                ),
             ],
           ),
 
@@ -906,14 +828,14 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _isSharing
+                  color: _service.isSharing
                       ? Colors.green.withValues(alpha: 0.1)
                       : Colors.grey.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
                 child: Icon(
                   Icons.gps_fixed,
-                  color: _isSharing ? Colors.green : Colors.grey,
+                  color: _service.isSharing ? Colors.green : Colors.grey,
                   size: 20,
                 ),
               ),
@@ -930,19 +852,19 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
                       ),
                     ),
                     Text(
-                      _isGettingLocation
+                      _service.isGettingLocation
                           ? 'Đang lấy vị trí...'
-                          : _locationStatus,
+                          : _service.locationStatus,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: _isSharing ? Colors.green[700] : Colors.black87,
+                        color: _service.isSharing ? Colors.green[700] : Colors.black87,
                       ),
                     ),
                   ],
                 ),
               ),
-              if (!_isSharing && !_isGettingLocation)
+              if (!_service.isSharing && !_service.isGettingLocation)
                 TextButton.icon(
                   onPressed: _getCurrentLocation,
                   icon: const Icon(Icons.refresh, size: 16),
@@ -958,7 +880,7 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
           const SizedBox(height: AppTheme.spacingS),
 
           // Thống kê (khi đang chia sẻ)
-          if (_isSharing && _trackPoints.isNotEmpty) ...[
+          if (_service.isSharing && _service.trackPoints.isNotEmpty) ...[
             const Divider(height: 1),
             const SizedBox(height: AppTheme.spacingS),
             Row(
@@ -966,14 +888,14 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
               children: [
                 _statItem(
                   Icons.timeline,
-                  '${_trackPoints.length}',
+                  '${_service.trackPoints.length}',
                   'Điểm ghi',
                   Colors.blue,
                 ),
                 _statItem(
                   Icons.speed,
-                  _currentPosition?.speed != null
-                      ? '${(_currentPosition!.speed * 3.6).toStringAsFixed(0)} km/h'
+                  _service.currentPosition?.speed != null
+                      ? '${(_service.currentPosition!.speed * 3.6).toStringAsFixed(0)} km/h'
                       : '--',
                   'Tốc độ',
                   Colors.orange,
@@ -995,7 +917,7 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
           SizedBox(
             width: double.infinity,
             height: AppTheme.controlHeight,
-            child: _isConnecting
+            child: _service.isConnecting
                 ? const ElevatedButton(
                     onPressed: null,
                     child: Row(
@@ -1014,7 +936,7 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
                       ],
                     ),
                   )
-                : _isSharing
+                : _service.isSharing
                     ? ElevatedButton.icon(
                         onPressed: () => _stopSharing(),
                         icon: const Icon(Icons.stop_circle_outlined),
@@ -1033,7 +955,7 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
                         ),
                       )
                     : ElevatedButton.icon(
-                        onPressed: _currentPosition == null
+                        onPressed: _service.currentPosition == null
                             ? null
                             : _startSharing,
                         icon: const Icon(Icons.location_on),
@@ -1055,7 +977,7 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
                       ),
           ),
 
-          if (!_isSharing && _currentPosition == null)
+          if (!_service.isSharing && _service.currentPosition == null)
             Padding(
               padding: const EdgeInsets.only(top: AppTheme.spacingS),
               child: Text(
@@ -1088,6 +1010,61 @@ class _StaffTrackingScreenState extends State<StaffTrackingScreen>
           style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Marker ghim điểm xuất phát / điểm đến trên bản đồ
+// ─────────────────────────────────────────────────────────────────────────────
+class _RoutePin extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String tooltip;
+
+  const _RoutePin({
+    required this.color,
+    required this.icon,
+    required this.tooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.28),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.white, size: 15),
+          ),
+          Positioned(
+            bottom: 0,
+            child: Container(
+              width: 3,
+              height: 10,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

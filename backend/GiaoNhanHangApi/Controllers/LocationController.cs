@@ -132,35 +132,52 @@ namespace GiaoNhanHangApi.Controllers
                 if (string.IsNullOrEmpty(email))
                     return Unauthorized();
 
-                var dbContext = await _databaseService.GetDynamicDbContextAsync(email, userLogin, "");
+                if (string.IsNullOrEmpty(req.TripID))
+                    return BadRequest("TripID is required");
 
-                var entity = new StaffLocation
+                // Cập nhật cache in-memory trước (không phụ thuộc DB thành công)
+                var staffIdForCache = string.IsNullOrEmpty(req.StaffID) ? userLogin : req.StaffID;
+                var staffNameForCache = string.IsNullOrEmpty(req.StaffName) ? userLogin : req.StaffName;
+
+                LocationHubCache.Set(new Hubs.StaffLocationDto
                 {
-                    LocationID = Guid.NewGuid(),
-                    StaffID = req.StaffID,
+                    StaffID = staffIdForCache,
+                    StaffName = staffNameForCache,
                     TripID = req.TripID,
                     Latitude = req.Latitude,
                     Longitude = req.Longitude,
                     SpeedKmh = req.SpeedKmh,
                     Heading = req.Heading,
                     Timestamp = DateTime.UtcNow,
-                    IsActive = true,
-                };
-
-                dbContext.StaffLocations.Add(entity);
-                await dbContext.SaveChangesAsync();
-
-                // Cập nhật cache in-memory
-                LocationHubCache.Set(new Hubs.StaffLocationDto
-                {
-                    StaffID = req.StaffID.ToString(),
-                    TripID = req.TripID.ToString(),
-                    Latitude = req.Latitude,
-                    Longitude = req.Longitude,
-                    SpeedKmh = req.SpeedKmh,
-                    Heading = req.Heading,
-                    Timestamp = entity.Timestamp,
                 });
+
+                // Lưu vào DB nếu cả hai ID đều là GUID hợp lệ
+                if (Guid.TryParse(req.StaffID, out var staffGuid) &&
+                    Guid.TryParse(req.TripID, out var tripGuid))
+                {
+                    var dbContext = await _databaseService.GetDynamicDbContextAsync(email, userLogin, "");
+
+                    var entity = new StaffLocation
+                    {
+                        LocationID = Guid.NewGuid(),
+                        StaffID = staffGuid,
+                        TripID = tripGuid,
+                        Latitude = req.Latitude,
+                        Longitude = req.Longitude,
+                        SpeedKmh = req.SpeedKmh,
+                        Heading = req.Heading,
+                        Timestamp = DateTime.UtcNow,
+                        IsActive = true,
+                    };
+
+                    dbContext.StaffLocations.Add(entity);
+                    try { await dbContext.SaveChangesAsync(); }
+                    catch (Exception dbEx)
+                    {
+                        // DB save thất bại (VD: FK không tồn tại) — cache đã được cập nhật nên không ảnh hưởng tracking
+                        Console.WriteLine($"[LocationController] DB save skipped: {dbEx.Message}");
+                    }
+                }
 
                 return Ok(new { message = "Cập nhật vị trí thành công" });
             }
@@ -185,19 +202,27 @@ namespace GiaoNhanHangApi.Controllers
                 if (string.IsNullOrEmpty(email))
                     return Unauthorized();
 
-                var dbContext = await _databaseService.GetDynamicDbContextAsync(email, userLogin, "");
+                var staffIdForCache = string.IsNullOrEmpty(req.StaffID) ? userLogin : req.StaffID;
+                LocationHubCache.Remove(staffIdForCache);
 
-                // Đánh dấu IsActive = false cho các bản ghi của chuyến này
-                var records = await dbContext.StaffLocations
-                    .Where(l => l.StaffID == req.StaffID && l.TripID == req.TripID && l.IsActive)
-                    .ToListAsync();
+                // Cập nhật DB chỉ khi cả hai là GUID hợp lệ
+                if (Guid.TryParse(req.StaffID, out var staffGuid) &&
+                    Guid.TryParse(req.TripID, out var tripGuid))
+                {
+                    var dbContext = await _databaseService.GetDynamicDbContextAsync(email, userLogin, "");
+                    var records = await dbContext.StaffLocations
+                        .Where(l => l.StaffID == staffGuid && l.TripID == tripGuid && l.IsActive)
+                        .ToListAsync();
 
-                foreach (var r in records)
-                    r.IsActive = false;
+                    foreach (var r in records)
+                        r.IsActive = false;
 
-                await dbContext.SaveChangesAsync();
-
-                LocationHubCache.Remove(req.StaffID.ToString());
+                    try { await dbContext.SaveChangesAsync(); }
+                    catch (Exception dbEx)
+                    {
+                        Console.WriteLine($"[LocationController] StopSharing DB error: {dbEx.Message}");
+                    }
+                }
 
                 return Ok(new { message = "Đã dừng chia sẻ vị trí" });
             }
@@ -213,18 +238,20 @@ namespace GiaoNhanHangApi.Controllers
     // ──────────────────────────────────────────────
     public class StaffLocationUpdateRequest
     {
-        public Guid StaffID { get; set; }
-        public Guid TripID { get; set; }
+        /// <summary>Có thể là GUID string hoặc user_login (fallback khi không có staff record)</summary>
+        public string StaffID { get; set; } = string.Empty;
+        public string TripID { get; set; } = string.Empty;
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public double? SpeedKmh { get; set; }
         public double? Heading { get; set; }
+        public string StaffName { get; set; } = string.Empty;
     }
 
     public class StaffLocationStopRequest
     {
-        public Guid StaffID { get; set; }
-        public Guid TripID { get; set; }
+        public string StaffID { get; set; } = string.Empty;
+        public string TripID { get; set; } = string.Empty;
     }
 
     // ──────────────────────────────────────────────

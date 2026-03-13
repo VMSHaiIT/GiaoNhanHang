@@ -25,11 +25,11 @@ namespace GiaoNhanHangApi.Hubs
     [Authorize]
     public class LocationHub : Hub
     {
-        private readonly IDatabaseService _databaseService;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public LocationHub(IDatabaseService databaseService)
+        public LocationHub(IServiceScopeFactory scopeFactory)
         {
-            _databaseService = databaseService;
+            _scopeFactory = scopeFactory;
         }
 
         // ──────────────────────────────────────────────
@@ -47,14 +47,18 @@ namespace GiaoNhanHangApi.Hubs
             // Cập nhật cache in-memory dùng chung
             LocationHubCache.Set(dto);
 
-            // Lưu vào DB không block hub
+            // Lưu vào DB không block hub — tạo scope mới để tránh disposed context
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    var dbContext = await _databaseService.GetDynamicDbContextAsync(email, userLogin, "");
                     if (!Guid.TryParse(dto.StaffID, out var staffGuid)) return;
                     if (!Guid.TryParse(dto.TripID, out var tripGuid)) return;
+
+                    // IServiceScopeFactory là singleton — an toàn để dùng trong background task
+                    using var scope = _scopeFactory.CreateScope();
+                    var dbService = scope.ServiceProvider.GetRequiredService<IDatabaseService>();
+                    var dbContext = await dbService.GetDynamicDbContextAsync(email, userLogin, "");
 
                     var entity = new StaffLocation
                     {
