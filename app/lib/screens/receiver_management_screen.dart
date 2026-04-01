@@ -75,7 +75,8 @@ class _ReceiverManagementScreenState extends State<ReceiverManagementScreen> {
       });
     } catch (e, st) {
       if (mounted) {
-        ErrorHandler.show(context, e, stackTrace: st,
+        ErrorHandler.show(context, e,
+            stackTrace: st,
             shortMessage: 'Không tải được dữ liệu. Vui lòng thử lại.');
       }
     } finally {
@@ -100,8 +101,8 @@ class _ReceiverManagementScreenState extends State<ReceiverManagementScreen> {
           if (successMessage != null && mounted) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
-                AppWidgets.showFlushbar(
-                    context, successMessage, type: MessageType.success);
+                AppWidgets.showFlushbar(context, successMessage,
+                    type: MessageType.success);
               }
             });
           }
@@ -133,14 +134,16 @@ class _ReceiverManagementScreenState extends State<ReceiverManagementScreen> {
               try {
                 await widget.api.deleteReceiver(receiver.receiverID);
                 if (mounted) {
-                  AppWidgets.showFlushbar(
-                      context, 'Đã xóa khách nhận.', type: MessageType.success);
+                  AppWidgets.showFlushbar(context, 'Đã xóa khách nhận.',
+                      type: MessageType.success);
                   _loadData();
                 }
               } catch (e, st) {
                 if (mounted) {
-                  ErrorHandler.show(context, e, stackTrace: st,
-                      shortMessage: 'Xóa khách nhận thất bại. Vui lòng thử lại.');
+                  ErrorHandler.show(context, e,
+                      stackTrace: st,
+                      shortMessage:
+                          'Xóa khách nhận thất bại. Vui lòng thử lại.');
                 }
               }
             },
@@ -165,14 +168,6 @@ class _ReceiverManagementScreenState extends State<ReceiverManagementScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          'Quản lý khách nhận',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
                         const SizedBox(height: AppTheme.spacingM),
                         TextField(
                           controller: _searchController,
@@ -530,7 +525,8 @@ class _ReceiverFormSheetState extends State<_ReceiverFormSheet> {
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Vui lòng nhập họ tên';
+                  if (v == null || v.trim().isEmpty)
+                    return 'Vui lòng nhập họ tên';
                   return null;
                 },
               ),
@@ -633,8 +629,7 @@ class _ReceiverFormSheetState extends State<_ReceiverFormSheet> {
                   padding:
                       const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
                   shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusMedium),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   ),
                 ),
                 child: _saving

@@ -146,6 +146,39 @@ class _HomeViewState extends State<HomeView> {
     return _HomeView.values.indexOf(_view);
   }
 
+  String _getTitle() {
+    switch (_view) {
+      case _HomeView.staffManagement:
+        return 'Quản lý nhân viên';
+      case _HomeView.senderManagement:
+        return 'Quản lý người gửi';
+      case _HomeView.receiverManagement:
+        return 'Quản lý người nhận';
+      case _HomeView.routeManagement:
+        return 'Quản lý tuyến đường';
+      case _HomeView.tripManagement:
+        return 'Quản lý chuyến đi';
+      case _HomeView.createOrder:
+        return 'Tạo đơn mới';
+      case _HomeView.orderManagement:
+        return 'Đơn hàng';
+      case _HomeView.outgoingWarehouse:
+        return 'Kho hàng đi';
+      case _HomeView.distribute:
+        return 'Phối hàng';
+      case _HomeView.incomingWarehouse:
+        return 'Kho hàng đến';
+      case _HomeView.staffTracking:
+        return 'Theo dõi nhân viên';
+      case _HomeView.orderTracking:
+        return 'Theo dõi đơn hàng';
+      case _HomeView.reports:
+        return 'Báo cáo';
+      case _HomeView.config:
+        return 'Cấu hình';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_isLoggedIn) {
@@ -158,7 +191,7 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: const Text('Giao Nhận Hàng'),
+        title: Text(_getTitle()),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
       ),

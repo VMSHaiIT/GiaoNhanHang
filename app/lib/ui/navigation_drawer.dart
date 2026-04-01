@@ -130,7 +130,7 @@ class AppNavigationDrawer extends StatelessWidget {
                   ),
                   _buildNavItem(
                     icon: Icons.location_on,
-                    title: 'Phát vị trí GPS',
+                    title: 'Theo dõi nhân viên',
                     index: 10,
                     isSelected: selectedIndex == 10,
                     onItemSelected: onItemSelected,

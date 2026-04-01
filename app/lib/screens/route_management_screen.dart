@@ -69,7 +69,8 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
       });
     } catch (e, st) {
       if (mounted) {
-        ErrorHandler.show(context, e, stackTrace: st,
+        ErrorHandler.show(context, e,
+            stackTrace: st,
             shortMessage: 'Không tải được dữ liệu. Vui lòng thử lại.');
       }
     } finally {
@@ -92,8 +93,8 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
           if (successMessage != null && mounted) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
-                AppWidgets.showFlushbar(
-                    context, successMessage, type: MessageType.success);
+                AppWidgets.showFlushbar(context, successMessage,
+                    type: MessageType.success);
               }
             });
           }
@@ -125,13 +126,14 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
               try {
                 await widget.api.deleteRoute(route.routeID);
                 if (mounted) {
-                  AppWidgets.showFlushbar(
-                      context, 'Đã xóa tuyến.', type: MessageType.success);
+                  AppWidgets.showFlushbar(context, 'Đã xóa tuyến.',
+                      type: MessageType.success);
                   _loadData();
                 }
               } catch (e, st) {
                 if (mounted) {
-                  ErrorHandler.show(context, e, stackTrace: st,
+                  ErrorHandler.show(context, e,
+                      stackTrace: st,
                       shortMessage: 'Xóa tuyến thất bại. Vui lòng thử lại.');
                 }
               }
@@ -157,19 +159,12 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          'Quản lý tuyến',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
                         const SizedBox(height: AppTheme.spacingM),
                         TextField(
                           controller: _searchController,
                           decoration: InputDecoration(
-                            hintText: 'Tìm theo tên tuyến, điểm đi, điểm đến...',
+                            hintText:
+                                'Tìm theo tên tuyến, điểm đi, điểm đến...',
                             prefixIcon: const Icon(Icons.search),
                             border: OutlineInputBorder(
                               borderRadius:
@@ -439,12 +434,13 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.all(Radius.circular(AppTheme.radiusMedium)),
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(AppTheme.radiusMedium)),
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Vui lòng nhập tên tuyến';
+                  if (v == null || v.trim().isEmpty)
+                    return 'Vui lòng nhập tên tuyến';
                   return null;
                 },
               ),
@@ -458,12 +454,13 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.all(Radius.circular(AppTheme.radiusMedium)),
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(AppTheme.radiusMedium)),
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Vui lòng nhập điểm đi';
+                  if (v == null || v.trim().isEmpty)
+                    return 'Vui lòng nhập điểm đi';
                   return null;
                 },
               ),
@@ -477,12 +474,13 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.all(Radius.circular(AppTheme.radiusMedium)),
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(AppTheme.radiusMedium)),
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Vui lòng nhập điểm đến';
+                  if (v == null || v.trim().isEmpty)
+                    return 'Vui lòng nhập điểm đến';
                   return null;
                 },
               ),
@@ -494,8 +492,8 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.all(Radius.circular(AppTheme.radiusMedium)),
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(AppTheme.radiusMedium)),
                   ),
                 ),
                 items: widget.transportTypeOptions
@@ -512,7 +510,8 @@ class _RouteFormSheetState extends State<_RouteFormSheet> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   ),

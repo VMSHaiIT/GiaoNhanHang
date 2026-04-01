@@ -59,7 +59,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       });
     } catch (e, st) {
       if (mounted) {
-        ErrorHandler.show(context, e, stackTrace: st,
+        ErrorHandler.show(context, e,
+            stackTrace: st,
             shortMessage: 'Không tải được dữ liệu. Vui lòng thử lại.');
       }
     } finally {
@@ -81,8 +82,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
           if (successMessage != null && mounted) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
-                AppWidgets.showFlushbar(
-                    context, successMessage, type: MessageType.success);
+                AppWidgets.showFlushbar(context, successMessage,
+                    type: MessageType.success);
               }
             });
           }
@@ -114,14 +115,16 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               try {
                 await widget.api.deleteStaff(staff.staffID);
                 if (mounted) {
-                  AppWidgets.showFlushbar(
-                      context, 'Đã xóa nhân viên.', type: MessageType.success);
+                  AppWidgets.showFlushbar(context, 'Đã xóa nhân viên.',
+                      type: MessageType.success);
                   _loadData();
                 }
               } catch (e, st) {
                 if (mounted) {
-                  ErrorHandler.show(context, e, stackTrace: st,
-                      shortMessage: 'Xóa nhân viên thất bại. Vui lòng thử lại.');
+                  ErrorHandler.show(context, e,
+                      stackTrace: st,
+                      shortMessage:
+                          'Xóa nhân viên thất bại. Vui lòng thử lại.');
                 }
               }
             },
@@ -146,14 +149,6 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          'Quản lý nhân viên',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
                         const SizedBox(height: AppTheme.spacingM),
                         TextField(
                           controller: _searchController,
@@ -404,12 +399,13 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.all(Radius.circular(AppTheme.radiusMedium)),
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(AppTheme.radiusMedium)),
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Vui lòng nhập họ tên';
+                  if (v == null || v.trim().isEmpty)
+                    return 'Vui lòng nhập họ tên';
                   return null;
                 },
               ),
@@ -423,8 +419,8 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.all(Radius.circular(AppTheme.radiusMedium)),
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(AppTheme.radiusMedium)),
                   ),
                 ),
                 keyboardType: TextInputType.phone,
@@ -439,7 +435,8 @@ class _StaffFormSheetState extends State<_StaffFormSheet> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   ),

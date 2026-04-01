@@ -105,7 +105,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(),
           _buildSearchAndFilter(),
           Expanded(
             child: _isLoading
@@ -134,24 +133,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      color: AppTheme.primaryColor,
-      padding: const EdgeInsets.fromLTRB(
-          AppTheme.spacingM, AppTheme.spacingM, AppTheme.spacingM, AppTheme.spacingM),
-      child: const Center(
-        child: Text(
-          'Theo dõi đơn hàng',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSearchAndFilter() {
     return Container(
       color: Colors.white,
@@ -164,7 +145,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             onChanged: (_) => _filter(),
             decoration: InputDecoration(
               hintText: 'Tìm theo mã đơn, người gửi, người nhận...',
-              prefixIcon: const Icon(Icons.search, color: AppTheme.primaryColor),
+              prefixIcon:
+                  const Icon(Icons.search, color: AppTheme.primaryColor),
               suffixIcon: _searchCtrl.text.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear),
@@ -667,7 +649,7 @@ class _OrderDetailPageState extends State<_OrderDetailPage> {
                 title: 'Thông tin đơn hàng',
                 color: AppTheme.primaryColor,
                 children: [
-                  _infoRow('Mã đơn', o.orderID),
+                  _infoRow('Mã đơn', o.shortId),
                   _infoRow('Loại đơn', o.orderType),
                   _infoRow(
                     'Ngày đặt',

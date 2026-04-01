@@ -163,14 +163,6 @@ class _TripManagementScreenState extends State<TripManagementScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          'Quản lý chuyến đi',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
                         const SizedBox(height: AppTheme.spacingM),
                         TextField(
                           controller: _searchController,

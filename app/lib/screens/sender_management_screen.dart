@@ -74,7 +74,8 @@ class _SenderManagementScreenState extends State<SenderManagementScreen> {
       });
     } catch (e, st) {
       if (mounted) {
-        ErrorHandler.show(context, e, stackTrace: st,
+        ErrorHandler.show(context, e,
+            stackTrace: st,
             shortMessage: 'Không tải được dữ liệu. Vui lòng thử lại.');
       }
     } finally {
@@ -99,8 +100,8 @@ class _SenderManagementScreenState extends State<SenderManagementScreen> {
           if (successMessage != null && mounted) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
-                AppWidgets.showFlushbar(
-                    context, successMessage, type: MessageType.success);
+                AppWidgets.showFlushbar(context, successMessage,
+                    type: MessageType.success);
               }
             });
           }
@@ -132,14 +133,16 @@ class _SenderManagementScreenState extends State<SenderManagementScreen> {
               try {
                 await widget.api.deleteSender(sender.senderID);
                 if (mounted) {
-                  AppWidgets.showFlushbar(
-                      context, 'Đã xóa khách gửi.', type: MessageType.success);
+                  AppWidgets.showFlushbar(context, 'Đã xóa khách gửi.',
+                      type: MessageType.success);
                   _loadData();
                 }
               } catch (e, st) {
                 if (mounted) {
-                  ErrorHandler.show(context, e, stackTrace: st,
-                      shortMessage: 'Xóa khách gửi thất bại. Vui lòng thử lại.');
+                  ErrorHandler.show(context, e,
+                      stackTrace: st,
+                      shortMessage:
+                          'Xóa khách gửi thất bại. Vui lòng thử lại.');
                 }
               }
             },
@@ -164,14 +167,6 @@ class _SenderManagementScreenState extends State<SenderManagementScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          'Quản lý khách gửi',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
                         const SizedBox(height: AppTheme.spacingM),
                         TextField(
                           controller: _searchController,
@@ -341,7 +336,8 @@ class _SenderCard extends StatelessWidget {
                   ),
                 if (sender.district != null)
                   Chip(
-                    label: Text(sender.district!, style: const TextStyle(fontSize: 12)),
+                    label: Text(sender.district!,
+                        style: const TextStyle(fontSize: 12)),
                     padding: EdgeInsets.zero,
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -349,7 +345,8 @@ class _SenderCard extends StatelessWidget {
                   Chip(
                     avatar: Icon(Icons.local_shipping,
                         size: 16, color: AppTheme.primaryColor),
-                    label: const Text('Nhận tận nơi', style: TextStyle(fontSize: 12)),
+                    label: const Text('Nhận tận nơi',
+                        style: TextStyle(fontSize: 12)),
                     padding: EdgeInsets.zero,
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -458,7 +455,8 @@ class _SenderFormSheetState extends State<_SenderFormSheet> {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLarge)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLarge)),
       ),
       padding: EdgeInsets.only(
         left: AppTheme.spacingM,
@@ -501,7 +499,8 @@ class _SenderFormSheetState extends State<_SenderFormSheet> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusMedium)),
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(AppTheme.radiusMedium)),
                   ),
                 ),
                 readOnly: isEdit,
@@ -520,11 +519,13 @@ class _SenderFormSheetState extends State<_SenderFormSheet> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusMedium)),
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(AppTheme.radiusMedium)),
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Vui lòng nhập họ tên';
+                  if (v == null || v.trim().isEmpty)
+                    return 'Vui lòng nhập họ tên';
                   return null;
                 },
               ),
@@ -539,7 +540,8 @@ class _SenderFormSheetState extends State<_SenderFormSheet> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusMedium)),
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(AppTheme.radiusMedium)),
                   ),
                 ),
               ),
@@ -551,7 +553,8 @@ class _SenderFormSheetState extends State<_SenderFormSheet> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusMedium)),
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(AppTheme.radiusMedium)),
                   ),
                 ),
                 items: widget.branches
@@ -570,7 +573,8 @@ class _SenderFormSheetState extends State<_SenderFormSheet> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusMedium)),
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(AppTheme.radiusMedium)),
                   ),
                 ),
                 items: widget.districtOptions
@@ -586,7 +590,8 @@ class _SenderFormSheetState extends State<_SenderFormSheet> {
                 children: [
                   Checkbox(
                     value: _pickupRequired,
-                    onChanged: (v) => setState(() => _pickupRequired = v ?? false),
+                    onChanged: (v) =>
+                        setState(() => _pickupRequired = v ?? false),
                     activeColor: AppTheme.primaryColor,
                   ),
                   const Text('Nhận tận nơi'),
@@ -599,7 +604,8 @@ class _SenderFormSheetState extends State<_SenderFormSheet> {
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusMedium)),
+                          borderRadius: BorderRadius.all(
+                              Radius.circular(AppTheme.radiusMedium)),
                         ),
                       ),
                       items: widget.staff
@@ -619,7 +625,8 @@ class _SenderFormSheetState extends State<_SenderFormSheet> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   ),
