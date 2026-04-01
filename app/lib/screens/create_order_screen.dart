@@ -411,7 +411,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         note: _noteController.text.isEmpty ? null : _noteController.text,
         totalWeight: totalWeight,
         totalAmount: totalAmount,
-        status: 'Mới',
+        status: 'pending',
         createdDate: DateTime.now(),
         createdBy: 'shop_owner',
         routeID: _selectedRouteId,
@@ -1398,7 +1398,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     );
   }
 
-  Widget _buildCameraCell(BuildContext context, OrderItemInput item, bool isMobile) {
+  Widget _buildCameraCell(
+      BuildContext context, OrderItemInput item, bool isMobile) {
     final width = MediaQuery.sizeOf(context).width;
     final isNarrow = width < _kBreakpointMobile;
     final iconSize = isNarrow ? 18.0 : 22.0;
@@ -1434,7 +1435,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           setState(() => item.imageUrl = imageUrl);
         }
       },
-      icon: Icon(Icons.camera_alt, size: iconSize, color: AppTheme.primaryColor),
+      icon:
+          Icon(Icons.camera_alt, size: iconSize, color: AppTheme.primaryColor),
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
     );
@@ -1448,7 +1450,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           final bytes = base64Decode(parts[1]);
           return Image.memory(bytes, fit: fit);
         }
-      } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      } else if (imageUrl.startsWith('http://') ||
+          imageUrl.startsWith('https://')) {
         return Image.network(imageUrl, fit: fit);
       }
     } catch (_) {}
@@ -2062,7 +2065,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     final isLastRow = index == _orderItems.length - 1;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTheme.spacingS),
-        child: Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           IconButton(

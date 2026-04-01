@@ -167,6 +167,10 @@ class Order {
         'routeID': routeID,
         'tripID': tripID,
       };
+
+  String get shortId {
+    return '#${orderID.substring(0, 8).toUpperCase()}';
+  }
 }
 
 class Sender {
@@ -533,12 +537,10 @@ class CreateOrderRequest {
       'order': orderJson,
       'sender': sender?.toJson(),
       'receiver': receiver?.toJson(),
-      'orderItems': orderItems
-          ?.map((e) => {...e.toJson(), 'order': orderJson})
-          .toList(),
-      'payment': payment != null
-          ? {...payment!.toJson(), 'order': orderJson}
-          : null,
+      'orderItems':
+          orderItems?.map((e) => {...e.toJson(), 'order': orderJson}).toList(),
+      'payment':
+          payment != null ? {...payment!.toJson(), 'order': orderJson} : null,
     };
   }
 }

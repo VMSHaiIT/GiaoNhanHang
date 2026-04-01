@@ -9,6 +9,7 @@ import 'screens/receiver_management_screen.dart';
 import 'screens/route_management_screen.dart';
 import 'screens/trip_management_screen.dart';
 import 'screens/create_order_screen.dart';
+import 'screens/order_management_screen.dart';
 import 'screens/outgoing_warehouse_screen.dart';
 import 'screens/distribute_screen.dart';
 import 'screens/incoming_warehouse_screen.dart';
@@ -50,6 +51,7 @@ enum _HomeView {
   routeManagement,
   tripManagement,
   createOrder,
+  orderManagement,
   outgoingWarehouse,
   distribute,
   incomingWarehouse,
@@ -121,6 +123,8 @@ class _HomeViewState extends State<HomeView> {
         return TripManagementScreen(api: api);
       case _HomeView.createOrder:
         return CreateOrderScreen(api: api);
+      case _HomeView.orderManagement:
+        return OrderManagementScreen(api: api);
       case _HomeView.outgoingWarehouse:
         return OutgoingWarehouseScreen(api: api);
       case _HomeView.distribute:

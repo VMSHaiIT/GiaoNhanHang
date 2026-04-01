@@ -10,6 +10,7 @@ import '../models.dart' as app_models;
 import '../ui/design_system.dart';
 import '../utils/error_handler.dart';
 import '../utils/route_service.dart';
+import '../utils/order_status_labels.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry point widget
@@ -26,22 +27,24 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   List<app_models.Order> _orders = [];
   List<app_models.Order> _filtered = [];
   bool _isLoading = true;
-  String _selectedStatus = 'Tất cả';
+  String _selectedStatus = OrderStatusLabels.allStatus;
   final _searchCtrl = TextEditingController();
 
   static const _statuses = [
-    'Tất cả',
-    'Chờ xử lý',
-    'Đang vận chuyển',
-    'Hoàn thành',
-    'Hủy',
+    OrderStatusLabels.allStatus,
+    'pending',
+    'collecting',
+    'in_stock',
+    'delivering',
+    'delivered',
+    'cancelled',
+    'returned',
   ];
 
   @override
   void initState() {
     super.initState();
     _loadOrders();
-    _searchCtrl.addListener(_filter);
   }
 
   @override
@@ -61,8 +64,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     } catch (e, st) {
       if (mounted) {
         ErrorHandler.show(context, e,
-            stackTrace: st,
-            shortMessage: 'Không tải được danh sách đơn hàng.');
+            stackTrace: st, shortMessage: 'Không tải được danh sách đơn hàng.');
       }
     } finally {
       setState(() => _isLoading = false);
@@ -73,8 +75,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final q = _searchCtrl.text.trim().toLowerCase();
     setState(() {
       _filtered = _orders.where((o) {
-        final matchStatus =
-            _selectedStatus == 'Tất cả' || o.status == _selectedStatus;
+        final matchStatus = _selectedStatus == OrderStatusLabels.allStatus ||
+            o.status == _selectedStatus;
         if (!matchStatus) return false;
         if (q.isEmpty) return true;
         return o.orderID.toLowerCase().contains(q) ||
@@ -104,6 +106,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(),
+          _buildSearchAndFilter(),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -113,13 +116,16 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                         onRefresh: _loadOrders,
                         child: ListView.separated(
                           padding: const EdgeInsets.fromLTRB(
-                              AppTheme.spacingM, AppTheme.spacingS,
-                              AppTheme.spacingM, AppTheme.spacingL),
+                              AppTheme.spacingM,
+                              AppTheme.spacingS,
+                              AppTheme.spacingM,
+                              AppTheme.spacingL),
                           itemCount: _filtered.length,
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: AppTheme.spacingS),
-                          itemBuilder: (_, i) =>
-                              _OrderCard(order: _filtered[i], onTap: () => _openDetail(_filtered[i])),
+                          itemBuilder: (_, i) => _OrderCard(
+                              order: _filtered[i],
+                              onTap: () => _openDetail(_filtered[i])),
                         ),
                       ),
           ),
@@ -132,39 +138,52 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     return Container(
       color: AppTheme.primaryColor,
       padding: const EdgeInsets.fromLTRB(
-          AppTheme.spacingM, AppTheme.spacingM, AppTheme.spacingM, 0),
+          AppTheme.spacingM, AppTheme.spacingM, AppTheme.spacingM, AppTheme.spacingM),
+      child: const Center(
+        child: Text(
+          'Theo dõi đơn hàng',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilter() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Theo dõi đơn hàng',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: AppTheme.spacingS),
-          // Search
           TextField(
             controller: _searchCtrl,
+            onChanged: (_) => _filter(),
             decoration: InputDecoration(
               hintText: 'Tìm theo mã đơn, người gửi, người nhận...',
-              hintStyle: const TextStyle(color: Colors.white60),
-              prefixIcon: const Icon(Icons.search, color: Colors.white60),
+              prefixIcon: const Icon(Icons.search, color: AppTheme.primaryColor),
+              suffixIcon: _searchCtrl.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchCtrl.clear();
+                        _filter();
+                      },
+                    )
+                  : null,
               filled: true,
-              fillColor: Colors.white12,
+              fillColor: AppTheme.surfaceAlt,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                  vertical: AppTheme.spacingS, horizontal: AppTheme.spacingM),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
             ),
-            style: const TextStyle(color: Colors.white),
           ),
-          const SizedBox(height: AppTheme.spacingS),
-          // Status filter chips
+          const SizedBox(height: 12),
           SizedBox(
             height: 36,
             child: ListView.separated(
@@ -173,30 +192,42 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (_, i) {
                 final s = _statuses[i];
-                final selected = s == _selectedStatus;
-                return ChoiceChip(
-                  label: Text(s,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: selected ? Colors.white : Colors.white70,
-                      )),
-                  selected: selected,
+                final isSelected = s == _selectedStatus;
+                return FilterChip(
+                  label: Text(OrderStatusLabels.labelFor(s)),
+                  selected: isSelected,
                   onSelected: (_) {
                     setState(() => _selectedStatus = s);
                     _filter();
                   },
-                  selectedColor: Colors.white24,
-                  backgroundColor: Colors.transparent,
-                  side: BorderSide(
-                    color: selected ? Colors.white : Colors.white38,
+                  selectedColor: AppTheme.primaryColor,
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black87,
+                    fontSize: 12,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
-                  showCheckmark: false,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  checkmarkColor: Colors.white,
+                  backgroundColor: AppTheme.surfaceAlt,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  side: BorderSide(
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : Colors.grey.shade300,
+                  ),
                 );
               },
             ),
           ),
-          const SizedBox(height: AppTheme.spacingS),
+          const SizedBox(height: 10),
+          Text(
+            'Hiển thị ${_filtered.length} / ${_orders.length} đơn hàng',
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -238,14 +269,20 @@ class _OrderCard extends StatelessWidget {
 
   Color _statusColor(String s) {
     switch (s) {
-      case 'Đang vận chuyển':
-        return Colors.blue;
-      case 'Hoàn thành':
-        return Colors.green;
-      case 'Hủy':
-        return Colors.red;
-      case 'Chờ xử lý':
-        return Colors.orange;
+      case 'pending':
+        return const Color(0xFFF59E0B);
+      case 'collecting':
+        return const Color(0xFF3B82F6);
+      case 'in_stock':
+        return const Color(0xFF8B5CF6);
+      case 'delivering':
+        return const Color(0xFF06B6D4);
+      case 'delivered':
+        return const Color(0xFF10B981);
+      case 'cancelled':
+        return const Color(0xFFEF4444);
+      case 'returned':
+        return const Color(0xFFEC4899);
       default:
         return Colors.grey;
     }
@@ -253,14 +290,22 @@ class _OrderCard extends StatelessWidget {
 
   IconData _statusIcon(String s) {
     switch (s) {
-      case 'Đang vận chuyển':
+      case 'pending':
+        return Icons.hourglass_empty;
+      case 'collecting':
+        return Icons.delivery_dining;
+      case 'in_stock':
+        return Icons.warehouse;
+      case 'delivering':
         return Icons.local_shipping;
-      case 'Hoàn thành':
+      case 'delivered':
         return Icons.check_circle;
-      case 'Hủy':
+      case 'cancelled':
         return Icons.cancel;
+      case 'returned':
+        return Icons.undo;
       default:
-        return Icons.hourglass_top;
+        return Icons.info_outline;
     }
   }
 
@@ -288,15 +333,14 @@ class _OrderCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                      borderRadius:
-                          BorderRadius.circular(AppTheme.radiusSmall),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                     ),
                     child: Text(
-                      '#${order.orderID.length > 8 ? order.orderID.substring(0, 8).toUpperCase() : order.orderID.toUpperCase()}',
+                      order.shortId,
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -314,22 +358,20 @@ class _OrderCard extends StatelessWidget {
                   const Spacer(),
                   // Status badge
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: sc.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
-                      border:
-                          Border.all(color: sc.withValues(alpha: 0.4)),
+                      border: Border.all(color: sc.withValues(alpha: 0.4)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(_statusIcon(order.status),
-                            size: 12, color: sc),
+                        Icon(_statusIcon(order.status), size: 12, color: sc),
                         const SizedBox(width: 4),
                         Text(
-                          order.status,
+                          OrderStatusLabels.labelFor(order.status),
                           style: TextStyle(
                               fontSize: 11,
                               color: sc,
@@ -357,8 +399,8 @@ class _OrderCard extends StatelessWidget {
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 6),
-                    child: Icon(Icons.arrow_forward,
-                        size: 14, color: Colors.grey),
+                    child:
+                        Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
                   ),
                   const Icon(Icons.person_pin_outlined,
                       size: 14, color: Colors.red),
@@ -398,13 +440,11 @@ class _OrderCard extends StatelessWidget {
               // Bottom row: date + amount + track hint
               Row(
                 children: [
-                  Icon(Icons.calendar_today,
-                      size: 12, color: Colors.grey[500]),
+                  Icon(Icons.calendar_today, size: 12, color: Colors.grey[500]),
                   const SizedBox(width: 4),
                   Text(
                     fmt.format(order.orderDate.toLocal()),
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                   ),
                   const Spacer(),
                   if (order.totalAmount > 0)
@@ -421,9 +461,7 @@ class _OrderCard extends StatelessWidget {
                   const SizedBox(width: AppTheme.spacingS),
                   Icon(
                     hasTrip ? Icons.location_on : Icons.chevron_right,
-                    color: hasTrip
-                        ? Colors.blue
-                        : AppTheme.primaryColor,
+                    color: hasTrip ? Colors.blue : AppTheme.primaryColor,
                     size: 18,
                   ),
                 ],
@@ -496,8 +534,10 @@ class _OrderDetailPageState extends State<_OrderDetailPage> {
       _refDestLatLng = result.destination;
     });
     // Fit bản đồ nếu chưa có vị trí staff
-    if (result.hasRoute && _staffLocation == null &&
-        result.origin != null && result.destination != null) {
+    if (result.hasRoute &&
+        _staffLocation == null &&
+        result.origin != null &&
+        result.destination != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _mapController.fitCamera(
@@ -551,14 +591,20 @@ class _OrderDetailPageState extends State<_OrderDetailPage> {
   // ── Helpers ────────────────────────────────────────────────────────────────
   Color _statusColor(String s) {
     switch (s) {
-      case 'Đang vận chuyển':
-        return Colors.blue;
-      case 'Hoàn thành':
-        return Colors.green;
-      case 'Hủy':
-        return Colors.red;
-      case 'Chờ xử lý':
-        return Colors.orange;
+      case 'pending':
+        return const Color(0xFFF59E0B);
+      case 'collecting':
+        return const Color(0xFF3B82F6);
+      case 'in_stock':
+        return const Color(0xFF8B5CF6);
+      case 'delivering':
+        return const Color(0xFF06B6D4);
+      case 'delivered':
+        return const Color(0xFF10B981);
+      case 'cancelled':
+        return const Color(0xFFEF4444);
+      case 'returned':
+        return const Color(0xFFEC4899);
       default:
         return Colors.grey;
     }
@@ -573,179 +619,180 @@ class _OrderDetailPageState extends State<_OrderDetailPage> {
     return Stack(
       children: [
         Scaffold(
-      backgroundColor: AppTheme.surfaceAlt,
-      appBar: AppBar(
-        title: Text(
-          'Đơn #${o.orderID.length > 8 ? o.orderID.substring(0, 8).toUpperCase() : o.orderID.toUpperCase()}',
-        ),
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
-        actions: [
-          // Status badge in appbar
-          Padding(
-            padding: const EdgeInsets.only(right: AppTheme.spacingM),
-            child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: statusColor.withValues(alpha: 0.5)),
-                ),
-                child: Text(
-                  o.status,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+          backgroundColor: AppTheme.surfaceAlt,
+          appBar: AppBar(
+            title: Text(
+              'Đơn ${o.shortId}',
+            ),
+            backgroundColor: AppTheme.primaryColor,
+            foregroundColor: Colors.white,
+            actions: [
+              // Status badge in appbar
+              Padding(
+                padding: const EdgeInsets.only(right: AppTheme.spacingM),
+                child: Center(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border:
+                          Border.all(color: statusColor.withValues(alpha: 0.5)),
+                    ),
+                    child: Text(
+                      OrderStatusLabels.labelFor(o.status),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(AppTheme.spacingM),
-        children: [
-          // ── Live map (if trip assigned & location available) ───────────────
-          if (_hasTrip) _buildMapSection(),
-
-          const SizedBox(height: AppTheme.spacingM),
-
-          // ── Order info ────────────────────────────────────────────────────
-          _buildSection(
-            icon: Icons.receipt_long,
-            title: 'Thông tin đơn hàng',
-            color: AppTheme.primaryColor,
-            children: [
-              _infoRow('Mã đơn', o.orderID),
-              _infoRow('Loại đơn', o.orderType),
-              _infoRow(
-                'Ngày đặt',
-                DateFormat('dd/MM/yyyy HH:mm').format(o.orderDate.toLocal()),
-              ),
-              _infoRow(
-                'Giao dự kiến',
-                DateFormat('dd/MM/yyyy')
-                    .format(o.expectedDeliveryDate.toLocal()),
-              ),
-              _infoRow(
-                  'Tổng trọng lượng', '${o.totalWeight.toStringAsFixed(2)} kg'),
-              if (o.note != null && o.note!.isNotEmpty)
-                _infoRow('Ghi chú', o.note!),
             ],
           ),
+          body: ListView(
+            padding: const EdgeInsets.all(AppTheme.spacingM),
+            children: [
+              // ── Live map (if trip assigned & location available) ───────────────
+              if (_hasTrip) _buildMapSection(),
 
-          const SizedBox(height: AppTheme.spacingM),
+              const SizedBox(height: AppTheme.spacingM),
 
-          // ── Route + Trip ──────────────────────────────────────────────────
-          if (o.route != null || o.trip != null)
-            _buildSection(
-              icon: Icons.route,
-              title: 'Tuyến / Chuyến đi',
-              color: Colors.teal,
-              children: [
-                if (o.route != null) ...[
-                  _infoRow('Tuyến', o.route!.routeName),
+              // ── Order info ────────────────────────────────────────────────────
+              _buildSection(
+                icon: Icons.receipt_long,
+                title: 'Thông tin đơn hàng',
+                color: AppTheme.primaryColor,
+                children: [
+                  _infoRow('Mã đơn', o.orderID),
+                  _infoRow('Loại đơn', o.orderType),
                   _infoRow(
-                    'Lộ trình',
-                    '${o.route!.origin}  →  ${o.route!.destination}',
+                    'Ngày đặt',
+                    DateFormat('dd/MM/yyyy HH:mm')
+                        .format(o.orderDate.toLocal()),
                   ),
-                  _infoRow('Phương tiện', o.route!.transportType),
+                  _infoRow(
+                    'Giao dự kiến',
+                    DateFormat('dd/MM/yyyy')
+                        .format(o.expectedDeliveryDate.toLocal()),
+                  ),
+                  _infoRow('Tổng trọng lượng',
+                      '${o.totalWeight.toStringAsFixed(2)} kg'),
+                  if (o.note != null && o.note!.isNotEmpty)
+                    _infoRow('Ghi chú', o.note!),
                 ],
-                if (o.trip != null) ...[
-                  _infoRow(
-                    'Chuyến đi',
-                    o.trip!.tripID.substring(0, 8).toUpperCase(),
-                  ),
-                  _infoRow('Trạng thái chuyến', o.trip!.status),
-                  if (o.trip!.departureTime != null)
+              ),
+
+              const SizedBox(height: AppTheme.spacingM),
+
+              // ── Route + Trip ──────────────────────────────────────────────────
+              if (o.route != null || o.trip != null)
+                _buildSection(
+                  icon: Icons.route,
+                  title: 'Tuyến / Chuyến đi',
+                  color: Colors.teal,
+                  children: [
+                    if (o.route != null) ...[
+                      _infoRow('Tuyến', o.route!.routeName),
+                      _infoRow(
+                        'Lộ trình',
+                        '${o.route!.origin}  →  ${o.route!.destination}',
+                      ),
+                      _infoRow('Phương tiện', o.route!.transportType),
+                    ],
+                    if (o.trip != null) ...[
+                      _infoRow(
+                        'Chuyến đi',
+                        o.trip!.tripID.substring(0, 8).toUpperCase(),
+                      ),
+                      _infoRow('Trạng thái chuyến', o.trip!.status),
+                      if (o.trip!.departureTime != null)
+                        _infoRow(
+                          'Khởi hành',
+                          DateFormat('dd/MM HH:mm')
+                              .format(o.trip!.departureTime!.toLocal()),
+                        ),
+                      if (o.trip!.vehicle != null)
+                        _infoRow('Xe', o.trip!.vehicle!.vehicleName),
+                      if (o.trip!.driver != null)
+                        _infoRow('Tài xế', o.trip!.driver!.name),
+                    ],
+                  ],
+                ),
+
+              if (o.route != null || o.trip != null)
+                const SizedBox(height: AppTheme.spacingM),
+
+              // ── Sender ────────────────────────────────────────────────────────
+              if (o.sender != null)
+                _buildSection(
+                  icon: Icons.person_outline,
+                  title: 'Người gửi',
+                  color: Colors.green.shade700,
+                  children: [
+                    _infoRow('Tên', o.sender!.name),
+                    _infoRow('SĐT', o.sender!.phone),
+                    if (o.sender!.address != null &&
+                        o.sender!.address!.isNotEmpty)
+                      _infoRow('Địa chỉ', o.sender!.address!),
+                    if (o.sender!.district != null &&
+                        o.sender!.district!.isNotEmpty)
+                      _infoRow('Quận/Huyện', o.sender!.district!),
+                    if (o.sender!.branch != null)
+                      _infoRow('Chi nhánh', o.sender!.branch!.branchName),
                     _infoRow(
-                      'Khởi hành',
-                      DateFormat('dd/MM HH:mm')
-                          .format(o.trip!.departureTime!.toLocal()),
+                      'Lấy hàng tận nơi',
+                      o.sender!.pickupRequired ? 'Có' : 'Không',
                     ),
-                  if (o.trip!.vehicle != null)
-                    _infoRow('Xe', o.trip!.vehicle!.vehicleName),
-                  if (o.trip!.driver != null)
-                    _infoRow('Tài xế', o.trip!.driver!.name),
-                ],
-              ],
-            ),
-
-          if (o.route != null || o.trip != null)
-            const SizedBox(height: AppTheme.spacingM),
-
-          // ── Sender ────────────────────────────────────────────────────────
-          if (o.sender != null)
-            _buildSection(
-              icon: Icons.person_outline,
-              title: 'Người gửi',
-              color: Colors.green.shade700,
-              children: [
-                _infoRow('Tên', o.sender!.name),
-                _infoRow('SĐT', o.sender!.phone),
-                if (o.sender!.address != null && o.sender!.address!.isNotEmpty)
-                  _infoRow('Địa chỉ', o.sender!.address!),
-                if (o.sender!.district != null &&
-                    o.sender!.district!.isNotEmpty)
-                  _infoRow('Quận/Huyện', o.sender!.district!),
-                if (o.sender!.branch != null)
-                  _infoRow('Chi nhánh', o.sender!.branch!.branchName),
-                _infoRow(
-                  'Lấy hàng tận nơi',
-                  o.sender!.pickupRequired ? 'Có' : 'Không',
+                  ],
                 ),
-              ],
-            ),
 
-          if (o.sender != null) const SizedBox(height: AppTheme.spacingM),
+              if (o.sender != null) const SizedBox(height: AppTheme.spacingM),
 
-          // ── Receiver ──────────────────────────────────────────────────────
-          if (o.receiver != null)
-            _buildSection(
-              icon: Icons.person_pin_outlined,
-              title: 'Người nhận',
-              color: Colors.red.shade700,
-              children: [
-                _infoRow('Tên', o.receiver!.name),
-                _infoRow('SĐT', o.receiver!.phone),
-                if (o.receiver!.address != null &&
-                    o.receiver!.address!.isNotEmpty)
-                  _infoRow('Địa chỉ', o.receiver!.address!),
-                if (o.receiver!.district != null &&
-                    o.receiver!.district!.isNotEmpty)
-                  _infoRow('Quận/Huyện', o.receiver!.district!),
-                if (o.receiver!.branch != null)
-                  _infoRow('Chi nhánh', o.receiver!.branch!.branchName),
-                _infoRow(
-                  'Giao tận nơi',
-                  o.receiver!.deliveryRequired ? 'Có' : 'Không',
+              // ── Receiver ──────────────────────────────────────────────────────
+              if (o.receiver != null)
+                _buildSection(
+                  icon: Icons.person_pin_outlined,
+                  title: 'Người nhận',
+                  color: Colors.red.shade700,
+                  children: [
+                    _infoRow('Tên', o.receiver!.name),
+                    _infoRow('SĐT', o.receiver!.phone),
+                    if (o.receiver!.address != null &&
+                        o.receiver!.address!.isNotEmpty)
+                      _infoRow('Địa chỉ', o.receiver!.address!),
+                    if (o.receiver!.district != null &&
+                        o.receiver!.district!.isNotEmpty)
+                      _infoRow('Quận/Huyện', o.receiver!.district!),
+                    if (o.receiver!.branch != null)
+                      _infoRow('Chi nhánh', o.receiver!.branch!.branchName),
+                    _infoRow(
+                      'Giao tận nơi',
+                      o.receiver!.deliveryRequired ? 'Có' : 'Không',
+                    ),
+                  ],
                 ),
-              ],
-            ),
 
-          if (o.receiver != null) const SizedBox(height: AppTheme.spacingM),
+              if (o.receiver != null) const SizedBox(height: AppTheme.spacingM),
 
-          // ── Order items ───────────────────────────────────────────────────
-          if (o.orderItems != null && o.orderItems!.isNotEmpty)
-            _buildItemsSection(o.orderItems!),
+              // ── Order items ───────────────────────────────────────────────────
+              if (o.orderItems != null && o.orderItems!.isNotEmpty)
+                _buildItemsSection(o.orderItems!),
 
-          if (o.orderItems != null && o.orderItems!.isNotEmpty)
-            const SizedBox(height: AppTheme.spacingM),
+              if (o.orderItems != null && o.orderItems!.isNotEmpty)
+                const SizedBox(height: AppTheme.spacingM),
 
-          // ── Payment ───────────────────────────────────────────────────────
-          if (o.payment != null) _buildPaymentSection(o.payment!),
+              // ── Payment ───────────────────────────────────────────────────────
+              if (o.payment != null) _buildPaymentSection(o.payment!),
 
-          const SizedBox(height: AppTheme.spacingL),
-        ],
-      ),
+              const SizedBox(height: AppTheme.spacingL),
+            ],
+          ),
         ),
-        if (_isFullscreen)
-          Positioned.fill(child: _buildFullscreenMap()),
+        if (_isFullscreen) Positioned.fill(child: _buildFullscreenMap()),
       ],
     );
   }
@@ -951,8 +998,8 @@ class _OrderDetailPageState extends State<_OrderDetailPage> {
                   color: Colors.black54,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: _buildLocationInfoRow(
-                      _staffLocation!, textColor: Colors.white),
+                  child: _buildLocationInfoRow(_staffLocation!,
+                      textColor: Colors.white),
                 ),
               ),
             ),
@@ -974,7 +1021,8 @@ class _OrderDetailPageState extends State<_OrderDetailPage> {
           style: TextStyle(fontSize: 11, color: textColor),
         ),
         const Spacer(),
-        if (loc.speedKmh != null && loc.speedKmh! > 0) ...[          Icon(Icons.speed, size: 13, color: textColor),
+        if (loc.speedKmh != null && loc.speedKmh! > 0) ...[
+          Icon(Icons.speed, size: 13, color: textColor),
           const SizedBox(width: 2),
           Text(
             '${loc.speedKmh!.toStringAsFixed(0)} km/h',
@@ -1134,8 +1182,8 @@ class _OrderDetailPageState extends State<_OrderDetailPage> {
               color: Colors.blue.shade50,
               padding: const EdgeInsets.symmetric(
                   horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXS),
-              child: _buildLocationInfoRow(loc,
-                  textColor: Colors.blue.shade700),
+              child:
+                  _buildLocationInfoRow(loc, textColor: Colors.blue.shade700),
             ),
 
           // Staff info strip
@@ -1228,8 +1276,7 @@ class _OrderDetailPageState extends State<_OrderDetailPage> {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w500),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -1238,8 +1285,8 @@ class _OrderDetailPageState extends State<_OrderDetailPage> {
   }
 
   Widget _buildItemsSection(List<app_models.OrderItem> items) {
-    final currencyFmt = NumberFormat.currency(
-        locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+    final currencyFmt =
+        NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 
     return Card(
       elevation: 1,
@@ -1289,15 +1336,13 @@ class _OrderDetailPageState extends State<_OrderDetailPage> {
                             Text(
                               item.itemName,
                               style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600),
+                                  fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               '${item.quantity} ${item.unit}  ·  ${item.weight} kg',
                               style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppTheme.textSecondary),
+                                  fontSize: 11, color: AppTheme.textSecondary),
                             ),
                           ],
                         ),
@@ -1323,8 +1368,8 @@ class _OrderDetailPageState extends State<_OrderDetailPage> {
   }
 
   Widget _buildPaymentSection(app_models.Payment payment) {
-    final fmt = NumberFormat.currency(
-        locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+    final fmt =
+        NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
 
     return Card(
       elevation: 1,
@@ -1363,8 +1408,7 @@ class _OrderDetailPageState extends State<_OrderDetailPage> {
             child: Column(
               children: [
                 _infoRow('Phương thức', payment.paymentMethod),
-                _infoRow(
-                    'Phí vận chuyển', fmt.format(payment.shippingFee)),
+                _infoRow('Phí vận chuyển', fmt.format(payment.shippingFee)),
                 if (payment.codAmount > 0)
                   _infoRow('Thu hộ (COD)', fmt.format(payment.codAmount)),
                 if (payment.codFee > 0)
@@ -1488,8 +1532,8 @@ class _StaffMarker extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(Icons.local_shipping,
-              color: Colors.white, size: 14),
+          child:
+              const Icon(Icons.local_shipping, color: Colors.white, size: 14),
         ),
       ],
     );
